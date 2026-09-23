@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/CapSens/n8n-nodes-signlift.git"
+    "url": "git+https://github.com/CapSens/signlift-n8n.git"
   },
   "scripts": {
     "build": "n8n-node build",
@@ -53,6 +53,6 @@
     "n8n-workflow": "*"
   },
   "bugs": {
-    "url": "https://github.com/CapSens/n8n-nodes-signlift/issues"
+    "url": "https://github.com/CapSens/signlift-n8n/issues"
   }
 }
