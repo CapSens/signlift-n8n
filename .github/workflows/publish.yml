@@ -116,3 +116,9 @@ jobs:
           npm stage publish --provenance
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # prepublishOnly runs `n8n-node prerelease`, which exits 1 unless
+          # this is set. It guards against a bare `npm publish` that would
+          # skip lint, build and provenance — all three of which the steps
+          # above and the flag on the line above do carry out. `npm run
+          # release` sets the very same variable when it publishes from CI.
+          RELEASE_MODE: 'true'
