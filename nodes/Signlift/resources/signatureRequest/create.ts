@@ -10,6 +10,13 @@ const showOnlyForCreate = {
 	resource: ['signatureRequest'],
 };
 
+// Everything below `documentId` is shared with sendForSignature, which
+// uploads the file itself instead of being handed an id.
+const showForBothCreators = {
+	operation: ['create', 'sendForSignature'],
+	resource: ['signatureRequest'],
+};
+
 interface SignerRow {
 	firstName: string;
 	lastName: string;
@@ -33,8 +40,15 @@ export async function buildSignatureRequestBody(
 	this: IExecuteSingleFunctions,
 	requestOptions: IHttpRequestOptions,
 ): Promise<IHttpRequestOptions> {
-	const mode = this.getNodeParameter('mode') as string;
 	const documentId = this.getNodeParameter('documentId') as number;
+
+	requestOptions.body = { signature_request: buildPayload.call(this, documentId) };
+
+	return requestOptions;
+}
+
+export function buildPayload(this: IExecuteSingleFunctions, documentId: number): IDataObject {
+	const mode = this.getNodeParameter('mode') as string;
 	const signerRows = (this.getNodeParameter('signers') as IDataObject)?.signer as
 		| SignerRow[]
 		| undefined;
@@ -78,17 +92,13 @@ export async function buildSignatureRequestBody(
 		}
 	}
 
-	const signatureRequest: IDataObject = {
+	return {
 		mode,
 		validity_days: this.getNodeParameter('validityDays') as number,
 		signers,
 		documents: [{ id: documentId, signers: documentSigners }],
 		...options,
 	};
-
-	requestOptions.body = { signature_request: signatureRequest };
-
-	return requestOptions;
 }
 
 export const signatureRequestCreateDescription: INodeProperties[] = [
@@ -118,7 +128,7 @@ export const signatureRequestCreateDescription: INodeProperties[] = [
 			},
 		],
 		default: 'sequential',
-		displayOptions: { show: showOnlyForCreate },
+		displayOptions: { show: showForBothCreators },
 	},
 	{
 		displayName: 'Validity (Days)',
@@ -126,7 +136,7 @@ export const signatureRequestCreateDescription: INodeProperties[] = [
 		type: 'number',
 		typeOptions: { minValue: 1, maxValue: 90 },
 		default: 30,
-		displayOptions: { show: showOnlyForCreate },
+		displayOptions: { show: showForBothCreators },
 		description: 'How long the signers have to sign before the request expires',
 	},
 	{
@@ -137,7 +147,7 @@ export const signatureRequestCreateDescription: INodeProperties[] = [
 		placeholder: 'Add Signer',
 		default: {},
 		required: true,
-		displayOptions: { show: showOnlyForCreate },
+		displayOptions: { show: showForBothCreators },
 		description: 'In sequential mode, signers are invited in the order listed here',
 		options: [
 			{
@@ -206,7 +216,7 @@ export const signatureRequestCreateDescription: INodeProperties[] = [
 		type: 'collection',
 		placeholder: 'Add Option',
 		default: {},
-		displayOptions: { show: showOnlyForCreate },
+		displayOptions: { show: showForBothCreators },
 		options: [
 			{
 				displayName: 'Send Invitation Emails',

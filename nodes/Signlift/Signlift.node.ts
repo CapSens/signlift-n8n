@@ -5,6 +5,13 @@ import { auditLogDescription } from './resources/auditLog';
 import { brandingProfileDescription } from './resources/brandingProfile';
 import { getBrandingProfiles } from './listSearch/getBrandingProfiles';
 
+// The rule below says "when in doubt, set it to true". This is not doubt: the
+// node carries binary operations, which tools cannot pass, and letting an
+// agent send a legally binding signature request is a decision to take
+// deliberately. Omitting the property is the only way the type expresses
+// "not a tool" — it accepts `true | UsableAsToolDescription | undefined`,
+// never `false`.
+// eslint-disable-next-line @n8n/community-nodes/node-usable-as-tool
 export class Signlift implements INodeType {
 	description: INodeTypeDescription = {
 		displayName: 'Signlift',
@@ -17,7 +24,6 @@ export class Signlift implements INodeType {
 		defaults: {
 			name: 'Signlift',
 		},
-		usableAsTool: true,
 		inputs: [NodeConnectionTypes.Main],
 		outputs: [NodeConnectionTypes.Main],
 		credentials: [

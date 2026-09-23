@@ -36,7 +36,12 @@ Sandbox signatures carry a visible watermark and are not legally binding.
 
 ### Signature Request
 
-- **Create** — send a document out for signature.
+- **Send for Signature** — upload a PDF and send it out for signature in one
+  step. The usual starting point.
+- **Create** — build an envelope on a document you already uploaded. Use this
+  when one document goes into several envelopes.
+- **Download** — fetch the sealed PDFs and the evidence file of a completed
+  request as binary data, ready to store or attach.
 - **Get** — read an envelope. Download links for the signed PDFs and the
   evidence file appear once `finalized` is true.
 - **Get Many** — list your signature requests, with filters on status and
@@ -44,6 +49,7 @@ Sandbox signatures carry a visible watermark and are not legally binding.
 
 ### Document
 
+- **Upload** — upload a PDF from a binary field so it can be signed.
 - **Get** — read a document and get a link to download the original PDF.
 - **Get Many** — list your documents.
 
@@ -56,7 +62,7 @@ Sandbox signatures carry a visible watermark and are not legally binding.
 
 - **Get Many** — list the branding profiles you can apply to a signing flow.
 
-Uploading a document and the triggers are on the way.
+Triggers are on the way.
 
 ## Signature tags
 
@@ -67,6 +73,24 @@ you do not want it visible in the finished document.
 
 This beats positioning a signature by page and coordinates, which breaks the
 moment the document reflows.
+
+## Downloading the result
+
+A signature request exposes its files once `finalized` is true, which is not
+the same as `completed`. Completion says the last signer signed; sealing runs
+afterwards and emits the evidence file last. **Download** fails with a clear
+message while the request is still sealing, so poll on `finalized` rather than
+on `status`.
+
+The evidence file is emitted once per request, not per document: **Download**
+returns one item per signed PDF plus one for the evidence file, each tagged in
+`json.kind`.
+
+## A note on AI agents
+
+This node is deliberately **not** exposed as an AI tool. It moves binary data,
+which tools cannot carry, and sending a legally binding signature request is
+not something to hand to an agent by default.
 
 ## Resources
 

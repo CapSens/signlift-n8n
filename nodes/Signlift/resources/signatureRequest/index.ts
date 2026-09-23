@@ -2,6 +2,8 @@ import type { INodeProperties } from 'n8n-workflow';
 import { signatureRequestGetManyDescription } from './getAll';
 import { signatureRequestGetDescription } from './get';
 import { buildSignatureRequestBody, signatureRequestCreateDescription } from './create';
+import { sendForSignatureDescription, uploadThenCreate } from './sendForSignature';
+import { downloadDescription, emitSignedDocuments } from './download';
 
 const showOnlyForSignatureRequests = {
 	resource: ['signatureRequest'],
@@ -15,6 +17,17 @@ export const signatureRequestDescription: INodeProperties[] = [
 		noDataExpression: true,
 		displayOptions: { show: showOnlyForSignatureRequests },
 		options: [
+			{
+				name: 'Send for Signature',
+				value: 'sendForSignature',
+				action: 'Send a file for signature',
+				description:
+					'Upload a PDF and send it out for signature in one step. Use Upload plus Create instead when you reuse one document across several envelopes.',
+				routing: {
+					request: { method: 'POST', url: '/api/v1/signature_requests' },
+					send: { preSend: [uploadThenCreate] },
+				},
+			},
 			{
 				name: 'Create',
 				value: 'create',
@@ -39,6 +52,20 @@ export const signatureRequestDescription: INodeProperties[] = [
 				},
 			},
 			{
+				name: 'Download',
+				value: 'download',
+				action: 'Download the signed documents',
+				description:
+					'Fetch the sealed PDFs and the evidence file of a completed request as binary data',
+				routing: {
+					request: {
+						method: 'GET',
+						url: '=/api/v1/signature_requests/{{$parameter.signatureRequestId}}',
+					},
+					output: { postReceive: [emitSignedDocuments] },
+				},
+			},
+			{
 				name: 'Get Many',
 				value: 'getAll',
 				action: 'Get many signature requests',
@@ -51,7 +78,9 @@ export const signatureRequestDescription: INodeProperties[] = [
 		],
 		default: 'getAll',
 	},
+	...sendForSignatureDescription,
 	...signatureRequestCreateDescription,
+	...downloadDescription,
 	...signatureRequestGetDescription,
 	...signatureRequestGetManyDescription,
 ];

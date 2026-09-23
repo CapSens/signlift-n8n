@@ -1,5 +1,6 @@
 import type { INodeProperties } from 'n8n-workflow';
 import { collectionFilters, paginationDescription } from '../../shared/descriptions';
+import { binaryPropertyDescription, buildDocumentUploadBody } from './upload';
 
 const showOnlyForDocuments = { resource: ['document'] };
 const showOnlyForGetMany = { operation: ['getAll'], resource: ['document'] };
@@ -12,6 +13,16 @@ export const documentDescription: INodeProperties[] = [
 		noDataExpression: true,
 		displayOptions: { show: showOnlyForDocuments },
 		options: [
+			{
+				name: 'Upload',
+				value: 'upload',
+				action: 'Upload a document',
+				description: 'Upload a PDF so it can be sent for signature',
+				routing: {
+					request: { method: 'POST', url: '/api/v1/documents' },
+					send: { preSend: [buildDocumentUploadBody] },
+				},
+			},
 			{
 				name: 'Get',
 				value: 'get',
@@ -33,6 +44,10 @@ export const documentDescription: INodeProperties[] = [
 			},
 		],
 		default: 'getAll',
+	},
+	{
+		...binaryPropertyDescription,
+		displayOptions: { show: { operation: ['upload'], resource: ['document'] } },
 	},
 	{
 		displayName: 'Document ID',
