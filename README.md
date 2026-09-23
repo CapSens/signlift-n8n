@@ -20,10 +20,10 @@ You need an **API key** from a Signlift external application. Create one in your
 Signlift dashboard under **External applications**, then copy the key — it is
 shown in full only once.
 
-| Field | Notes |
-| --- | --- |
-| API Key | Production keys start with `sk_live_`, sandbox keys with `sk_sandbox_` |
-| Deployment | Leave on **Production** unless Signlift gave you a staging account |
+| Field          | Notes                                                                     |
+| -------------- | ------------------------------------------------------------------------- |
+| API Key        | Production keys start with `sk_live_`, sandbox keys with `sk_sandbox_`    |
+| Deployment     | Leave on **Production** unless Signlift gave you a staging account        |
 | Webhook Secret | Only needed by the trigger. Leave empty if you use the action node alone. |
 
 **Sandbox and production are decided by the key, not by the Deployment field.**
@@ -125,9 +125,14 @@ returns one item per signed PDF plus one for the evidence file, each tagged in
 
 ## A note on AI agents
 
-This node is deliberately **not** exposed as an AI tool. It moves binary data,
-which tools cannot carry, and sending a legally binding signature request is
-not something to hand to an agent by default.
+The node can be attached to an AI agent. It only reaches one if you attach it
+yourself, and the binary operations — **Upload**, **Download**, **Send for
+Signature** — stay out of an agent's reach either way, since tools carry no
+binary data.
+
+What an agent can really call is **Create** and the read operations. Creating
+an envelope sends a legally binding signature request, so attach this node to
+an agent deliberately.
 
 ## Resources
 
@@ -152,8 +157,8 @@ A workflow that loops over many items can outrun the budget. Two things help:
 - Reach for **Get Many** with `Return All` rather than calling **Get** in a
   loop. One paginated walk costs far fewer calls than one request per record.
 
-A refused call answers `429` with `Retry-After`. n8n surfaces it as *"The
-service is receiving too many requests from you"*.
+A refused call answers `429` with `Retry-After`. n8n surfaces it as _"The
+service is receiving too many requests from you"_.
 
 ## Compatibility
 

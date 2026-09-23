@@ -4,6 +4,17 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the package
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-09-23
+
+### Changed
+
+- The node can now be attached to an AI agent. n8n's verification requires
+  the property, and its linter disregards an inline exemption, so there was
+  no middle ground between this and staying off n8n Cloud. An agent still
+  only reaches the node if someone attaches it to one, and the binary
+  operations — upload, download, send for signature — stay out of its reach
+  either way, since tools carry no binary.
+
 ## [0.1.1] - 2026-09-23
 
 Same node as 0.1.0. This version exists to carry a provenance attestation,
@@ -61,5 +72,6 @@ used by the trigger alone.
   creation and exposes no completion timestamp, so polling could notice new
   requests but not a request being signed.
 
+[0.1.2]: https://github.com/CapSens/signlift-n8n/releases/tag/0.1.2
 [0.1.1]: https://github.com/CapSens/signlift-n8n/releases/tag/0.1.1
 [0.1.0]: https://github.com/CapSens/signlift-n8n/releases/tag/0.1.0
