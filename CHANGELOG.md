@@ -4,6 +4,45 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the package
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-09-23
+
+### Added
+
+- **Wait for Completion** on *Send for Signature* and *Create*. The node hands
+  Signlift this execution's own resume URL as the envelope's callback, suspends
+  the execution, and resumes it when the envelope reaches a terminal state.
+  Nothing to configure on the Signlift side: each execution carries its own
+  address, so any number of workflows can wait at once.
+
+  It waits indefinitely by default. An envelope running out of time is not a
+  hang — `request.expired` is terminal, so the execution resumes with the
+  envelope. **Limit Wait Time** only guards against a callback that never
+  arrives at all.
+
+  It needs this n8n reachable over HTTPS and the webhook secret on the
+  credential, and refuses a batch, an execution suspending only once. All three
+  are refused up front with an explanation rather than failing later.
+
+### Removed
+
+- **Signlift Trigger**, and with it every webhook this package registered.
+
+  It served the case of one workflow listening to everything, and it could not
+  register its own URL: Signlift has no webhook management API, so the node
+  carried `webhookMethods` that claimed to register with an endpoint that does
+  not exist, and asked the user to paste the URL by hand. Worse, a Signlift
+  application holds a single webhook URL, so activating a second listening
+  workflow silently stole the first one's.
+
+  The wait mode covers what most integrations actually wanted from it. The
+  trigger comes back when Signlift exposes endpoint management, which is
+  tracked in CapSens/signlift#367.
+
+### Changed
+
+- The package now has a test suite, with the build failing below 90% branch
+  coverage. Branches are at 100%.
+
 ## [0.1.2] - 2026-09-23
 
 ### Changed

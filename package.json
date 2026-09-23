@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-signlift",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "description": "n8n community node for Signlift, the eIDAS electronic signature API",
   "license": "MIT",
   "homepage": "https://doc.signlift.eu",
@@ -44,8 +44,7 @@
       "dist/credentials/SignliftApi.credentials.js"
     ],
     "nodes": [
-      "dist/nodes/Signlift/Signlift.node.js",
-      "dist/nodes/SignliftTrigger/SignliftTrigger.node.js"
+      "dist/nodes/Signlift/Signlift.node.js"
     ]
   },
   "devDependencies": {
