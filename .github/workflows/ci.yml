@@ -32,3 +32,9 @@ jobs:
 
       - name: Run build
         run: 'npm run build'
+
+      # The coverage threshold is what makes this a guard rather than a
+      # formality: the suite fails below 90% branch coverage, so a new
+      # conditional cannot land untested.
+      - name: Run tests
+        run: 'npm run test:coverage'
