@@ -1,71 +1,37 @@
-# Publishes this n8n community node package to npm on every version tag push.
+# Publishes this n8n community node package to npm.
 #
-# Starting May 1 2026, n8n requires all community nodes to be published via
-# GitHub Actions with npm provenance statements. This workflow satisfies that
-# requirement. Provenance lets anyone cryptographically verify that a package
-# was built by this exact workflow, from this exact repository and commit.
+# A release is a pull request that bumps `version` in package.json and adds
+# its changelog entry. Merging it is the whole ceremony: this workflow sees
+# the new version on main, publishes it, and tags the commit.
 #
-# ─── PREREQUISITES ─────────────────────────────────────────────────────────────
+# ─── AUTHENTICATION ────────────────────────────────────────────────────────────
 #
-# @n8n/node-cli ≥ 0.23.0 is required. Earlier versions do not support the
-# provenance flag passed by `npm run release` in CI, and the publish step will
-# fail. Check the version installed in this project with:
+# None stored. npm trusts this repository and this workflow file directly
+# (Trusted Publishing, OIDC), so the runner mints a short-lived token per run
+# and no secret sits in the repository settings. `id-token: write` below is
+# what allows it, and it is also what signs the provenance attestation n8n has
+# required of community nodes since 1 May 2026.
 #
-#   npm list @n8n/node-cli
+# Configured once on npmjs.com, under the package's Publish access → Trusted
+# Publishers: owner CapSens, repository signlift-n8n, workflow publish.yml.
 #
-# To upgrade, add @n8n/node-cli@latest as a dev dependency using your package manager.
+# ─── WHY NOT `npm run release` ─────────────────────────────────────────────────
 #
-# ─── ONE-TIME SETUP ────────────────────────────────────────────────────────────
-#
-# Option A — OIDC Trusted Publishing (recommended, no long-lived secrets):
-#   1. Log in to npmjs.com and open your package's settings.
-#   2. Under "Publish access" → "Trusted Publishers", click "Add a publisher".
-#   3. Select GitHub Actions and fill in:
-#        Repository owner: <your-github-username-or-org>
-#        Repository name:  <your-repo-name>
-#        Workflow name:    publish.yml
-#        Environment:      (leave blank unless you use GitHub Environments)
-#   4. Leave the NPM_TOKEN secret unset in this repository. GitHub's OIDC
-#      token is used instead — no secret ever touches your repo settings.
-#
-# Option B — npm Automation Token (fallback):
-#   1. On npmjs.com: Access Tokens → Generate New Token → Granular Access Token.
-#      Scope it to this package with "Read and write" publish permission.
-#   2. In GitHub: Settings → Secrets and variables → Actions → New secret.
-#      Name it NPM_TOKEN and paste the token value.
-#
-# Both options work with --provenance. Provenance is signed by GitHub's OIDC
-# infrastructure regardless of how npm authentication is handled.
-#
-# ─── TAG CONVENTION ────────────────────────────────────────────────────────────
-#
-# This workflow triggers on tags matching "*.*.*" (e.g. 0.2.0).
-# If you prefer tags with a "v" prefix (e.g. v0.2.0), change the filter to:
-#   tags: ['v*.*.*']
-#
-# ─── RELEASE PROCESS ───────────────────────────────────────────────────────────
-#
-# `npm run release` is NOT used here. It wants to commit and push on main,
-# which branch protection refuses, and in CI it calls `npm publish`, which an
-# account with two-factor authentication turns down from a runner that cannot
-# answer a prompt.
-#
-# A release is therefore three steps:
-#
-#   1. a pull request carrying the version bump and the changelog entry
-#   2. `git tag <version> && git push origin <version>`, which runs this
-#      workflow and stages the version with its provenance attestation
-#   3. `npm stage approve <stage-id>`, or the Staged Packages page on
-#      npmjs.com — where the second factor is answered, by a human, once
+# It wants to commit and push on main, which branch protection refuses. Its CI
+# path does lint, build and `npm publish`, which the three steps below do
+# explicitly — and RELEASE_MODE answers the `prepublishOnly` guard that exists
+# to stop a bare `npm publish` from skipping exactly those.
 
 name: Publish
 
 on:
   push:
-    tags:
-      # Matches 0.1.0, 1.2.3, 2.0.0-rc.1, etc.
-      # See "TAG CONVENTION" above if you prefer tags with a "v" prefix.
-      - '*.*.*'
+    branches:
+      - main
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
 
 jobs:
   publish:
@@ -73,10 +39,10 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      # Required to mint an OIDC token for npm provenance attestation.
+      # Mints the OIDC token npm exchanges, and signs the provenance.
       id-token: write
-      # Scoped down from the default (write) for least-privilege publishing.
-      contents: read
+      # Tags the released commit.
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
@@ -87,38 +53,44 @@ jobs:
           node-version: 'lts/*'
           cache: 'npm'
 
+      - name: Read the declared version
+        id: version
+        run: echo "value=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
+
+      # The workflow runs on every push to main, most of which change no
+      # version. Asking the registry is what makes it a no-op then, and what
+      # makes a re-run of an already-published version harmless.
+      - name: Check whether it is already published
+        id: published
+        run: |
+          if npm view "n8n-nodes-signlift@${{ steps.version.outputs.value }}" version >/dev/null 2>&1; then
+            echo "value=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Install dependencies
+        if: steps.published.outputs.value == 'false'
         run: 'npm ci'
 
       - name: Lint
+        if: steps.published.outputs.value == 'false'
         run: 'npm run lint'
 
       - name: Build
+        if: steps.published.outputs.value == 'false'
         run: 'npm run build'
 
-      - name: Stage the release
-        # `npm stage publish` rather than `npm publish`, which is what
-        # `npm run release` calls: the account enforces two-factor
-        # authentication, and a direct publish from CI has no way to answer an
-        # interactive prompt — npm turns that down with a misleading 404.
-        # Staging never asks for 2FA, and still signs the provenance
-        # attestation that n8n requires (hence id-token: write above).
-        #
-        # The version waits in the registry until a maintainer approves it:
-        #
-        #   npm stage list n8n-nodes-signlift
-        #   npm stage approve <stage-id>
-        #
-        # or from the Staged Packages page on npmjs.com. Approval is where the
-        # second factor is answered, by a human, once.
-        run: |
-          [ -n "$NPM_TOKEN" ] && npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
-          npm stage publish --provenance
+      - name: Publish
+        if: steps.published.outputs.value == 'false'
+        run: 'npm publish --provenance'
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # prepublishOnly runs `n8n-node prerelease`, which exits 1 unless
-          # this is set. It guards against a bare `npm publish` that would
-          # skip lint, build and provenance — all three of which the steps
-          # above and the flag on the line above do carry out. `npm run
-          # release` sets the very same variable when it publishes from CI.
           RELEASE_MODE: 'true'
+
+      # After publishing, never before: a tag pointing at a version that
+      # failed to publish would have to be moved by hand.
+      - name: Tag the released commit
+        if: steps.published.outputs.value == 'false'
+        run: |
+          git tag "${{ steps.version.outputs.value }}"
+          git push origin "${{ steps.version.outputs.value }}"
