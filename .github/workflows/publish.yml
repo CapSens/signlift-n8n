@@ -94,3 +94,34 @@ jobs:
         run: |
           git tag "${{ steps.version.outputs.value }}"
           git push origin "${{ steps.version.outputs.value }}"
+
+      # The check n8n itself runs when a node is submitted for verification.
+      # It reads the published tarball and its attestation, so it can only run
+      # after the publish above — and after the tag, so that a scan failure
+      # leaves a published version properly tagged rather than orphaned.
+      #
+      # The scanner exits 0 even when it reports a failure, so trusting its
+      # status would make this step green no matter what. The success line is
+      # the only reliable signal; do not simplify this back to a bare call.
+      #
+      # Retried because the registry does not always serve the attestation the
+      # instant publish returns, and a fresh version is exactly the case here.
+      - name: Scan the published package
+        if: steps.published.outputs.value == 'false'
+        env:
+          SPEC: "n8n-nodes-signlift@${{ steps.version.outputs.value }}"
+        run: |
+          for attempt in 1 2 3 4 5; do
+            npx --yes @n8n/scan-community-package "$SPEC" 2>&1 | tee scan.log || true
+
+            if grep -q "has passed all security checks" scan.log; then
+              echo "Scan passed on attempt $attempt."
+              exit 0
+            fi
+
+            echo "Attempt $attempt did not pass; retrying."
+            if [ "$attempt" -lt 5 ]; then sleep 30; fi
+          done
+
+          echo "::error::$SPEC did not pass the n8n community package scan"
+          exit 1
