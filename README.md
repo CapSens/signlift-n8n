@@ -24,6 +24,7 @@ shown in full only once.
 | --- | --- |
 | API Key | Production keys start with `sk_live_`, sandbox keys with `sk_sandbox_` |
 | Deployment | Leave on **Production** unless Signlift gave you a staging account |
+| Webhook Secret | Only needed by the trigger. Leave empty if you use the action node alone. |
 
 **Sandbox and production are decided by the key, not by the Deployment field.**
 A sandbox key only ever sees sandbox data: it cannot read a production envelope,
@@ -62,7 +63,43 @@ Sandbox signatures carry a visible watermark and are not legally binding.
 
 - **Get Many** — list the branding profiles you can apply to a signing flow.
 
-Triggers are on the way.
+## Trigger
+
+**Signlift Trigger** starts a workflow when Signlift reports a signing event:
+request completed, request expired, signer notified, signer signed, or a
+one-time code sent.
+
+### Setting it up
+
+1. Add the node to a workflow and copy the webhook URL it shows.
+2. Paste it into your Signlift external application, under **Webhook URL**.
+3. Copy the **webhook secret** shown next to your API key into the Signlift
+   credential in n8n.
+
+Signlift sends every event to that one URL; the node filters on the events you
+select and acknowledges the rest.
+
+The secret is not optional. Without it the node cannot tell a Signlift event
+from anything else that finds the URL, and it refuses to run.
+
+### What it handles for you
+
+- **Signature check** on the raw request body, in constant time. A request
+  that does not verify gets a `401` and never starts the workflow.
+- **Replays.** Signlift retries a delivery up to five times over thirteen
+  hours whenever it does not get an acknowledgement within five seconds. The
+  node remembers recent delivery ids, so a lost acknowledgement does not run
+  your workflow twice.
+
+### Why there is no polling trigger
+
+Signlift's list endpoint filters and sorts on creation, and exposes no
+completion timestamp, so a polling trigger could notice new requests but not
+the event you actually care about — a request being signed. Webhooks carry
+that reliably, with retries.
+
+If you have a reason to poll anyway, compose a **Schedule Trigger** with the
+**Get Many** action and its filters: nothing here prevents it.
 
 ## Signature tags
 

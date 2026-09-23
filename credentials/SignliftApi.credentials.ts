@@ -38,6 +38,15 @@ export class SignliftApi implements ICredentialType {
 			description:
 				'Which Signlift deployment to call. Leave on Production unless Signlift gave you a staging account: this is not the sandbox switch, which is carried by the key itself.',
 		},
+		{
+			displayName: 'Webhook Secret',
+			name: 'webhookSecret',
+			type: 'string',
+			typeOptions: { password: true },
+			default: '',
+			description:
+				'Only needed by the Signlift Trigger, which uses it to verify that an incoming event really came from Signlift. Find it next to your API key in the dashboard, under External applications. Leave empty if you only use the action node.',
+		},
 	];
 
 	authenticate: IAuthenticateGeneric = {
