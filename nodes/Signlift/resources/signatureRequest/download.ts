@@ -44,28 +44,56 @@ export async function emitSignedDocuments(
 		);
 	}
 
-	const results: INodeExecutionData[] = [];
-
-	for (const entry of entries) {
-		if (!entry.signed_url) continue;
-
-		results.push(
-			await this.helpers
-				.httpRequest({ method: 'GET', url: entry.signed_url, encoding: 'arraybuffer' })
-				.then(async (file) => ({
-					json: { kind: 'signed_document', document_id: entry.document_id },
-					binary: {
-						data: await this.helpers.prepareBinaryData(
-							Buffer.from(file as ArrayBuffer),
-							`document-${entry.document_id}.pdf`,
-							'application/pdf',
+	// In parallel: the links are independent, and a multi-document envelope
+	// would otherwise pay the sum of the latencies rather than the longest.
+	// Promise.all preserves order, so the caller sees a stable sequence.
+	const results: INodeExecutionData[] = await Promise.all(
+		entries
+			.filter((entry) => entry.signed_url)
+			.map(async (entry) => ({
+				json: { kind: 'signed_document', document_id: entry.document_id },
+				binary: {
+					data: await this.helpers
+						.httpRequest({
+							method: 'GET',
+							url: entry.signed_url as string,
+							encoding: 'arraybuffer',
+						})
+						.then((file) =>
+							this.helpers.prepareBinaryData(
+								Buffer.from(file as ArrayBuffer),
+								`document-${entry.document_id}.pdf`,
+								'application/pdf',
+							),
 						),
-					},
-				})),
-		);
+				},
+			})),
+	);
+
+	// Reported rather than skipped. A silent `continue` would let a download
+	// "succeed" with two documents out of three, and a workflow counting its
+	// output would be wrong without anything saying so.
+	const missing = entries.filter((entry) => !entry.signed_url);
+	for (const entry of missing) {
+		results.push({
+			json: {
+				kind: 'missing_document',
+				document_id: entry.document_id,
+				reason: 'The API exposed no signed_url for this document',
+			},
+		});
 	}
 
 	const certificateUrl = entries.find((entry) => entry.certificate_url)?.certificate_url;
+	if (!certificateUrl) {
+		results.push({
+			json: {
+				kind: 'missing_evidence_file',
+				reason: 'The API exposed no certificate_url on any entry',
+			},
+		});
+	}
+
 	if (certificateUrl) {
 		const file = (await this.helpers.httpRequest({
 			method: 'GET',

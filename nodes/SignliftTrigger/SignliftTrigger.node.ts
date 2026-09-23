@@ -13,6 +13,8 @@ import {
 /** Signlift replays a delivery up to five times over thirteen hours. */
 const REMEMBERED_DELIVERIES = 200;
 
+const HEX_SHA256 = /^[0-9a-f]{64}$/i;
+
 interface TriggerStaticData {
 	seenDeliveries?: string[];
 }
@@ -172,12 +174,16 @@ function isSignatureValid(
 ): boolean {
 	if (!signature?.startsWith('sha256=')) return false;
 
-	const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
 	const received = signature.slice('sha256='.length);
 
-	// timingSafeEqual throws on a length mismatch, which is itself a leak of
-	// sorts; comparing lengths first keeps the failure uniform.
-	if (received.length !== expected.length) return false;
+	// Checked before decoding, and on the shape rather than the length alone:
+	// Buffer.from(str, 'hex') stops at the first non-hex pair instead of
+	// throwing, so a same-length but malformed signature would decode to a
+	// shorter buffer and make timingSafeEqual throw. Anyone could reach that
+	// without knowing the secret.
+	if (!HEX_SHA256.test(received)) return false;
+
+	const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
 
 	return timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(received, 'hex'));
 }
