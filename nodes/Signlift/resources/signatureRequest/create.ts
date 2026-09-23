@@ -1,8 +1,9 @@
-import type {
-	IDataObject,
-	IExecuteSingleFunctions,
-	IHttpRequestOptions,
-	INodeProperties,
+import {
+	NodeOperationError,
+	type IDataObject,
+	type IExecuteSingleFunctions,
+	type IHttpRequestOptions,
+	type INodeProperties,
 } from 'n8n-workflow';
 
 const showOnlyForCreate = {
@@ -80,15 +81,24 @@ export function buildPayload(this: IExecuteSingleFunctions, documentId: number):
 	}));
 
 	// The branding picker is a resource locator, so it arrives as {mode, value}
-	// rather than as the integer the API wants.
+	// rather than as the integer the API wants. Validated rather than coerced:
+	// Number('abc') is NaN, which JSON.stringify turns into null without
+	// complaining, and the envelope would then be created with no branding at
+	// all while the user believes they picked one.
 	const brandingProfile = options.branding_profile_id as IDataObject | string | undefined;
 	if (brandingProfile !== undefined) {
-		const raw =
-			typeof brandingProfile === 'object' ? brandingProfile.value : brandingProfile;
+		const raw = typeof brandingProfile === 'object' ? brandingProfile.value : brandingProfile;
+
 		if (raw === '' || raw === undefined || raw === null) {
 			delete options.branding_profile_id;
-		} else {
+		} else if (Number.isInteger(Number(raw))) {
 			options.branding_profile_id = Number(raw);
+		} else {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Branding Profile is not a valid id: ${String(raw)}`,
+				{ description: 'Pick a profile from the list, or pass the integer id the API returns.' },
+			);
 		}
 	}
 
@@ -192,9 +202,11 @@ export const signatureRequestCreateDescription: INodeProperties[] = [
 						name: 'phone',
 						type: 'string',
 						default: '',
+						required: true,
 						placeholder: '+33612345678',
 						displayOptions: { show: { otpChannel: ['sms'] } },
-						description: 'Required when the code is sent by SMS. Pro and Enterprise plans only.',
+						description:
+							'E.164 format. Required by the SMS channel, and only available on the Pro and Enterprise plans.',
 					},
 					{
 						displayName: 'Signature Tag',

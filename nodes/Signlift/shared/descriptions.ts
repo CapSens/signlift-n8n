@@ -79,5 +79,16 @@ export function paginationDescription(show: IDisplayOptions['show']): INodePrope
 			description: 'Max number of results to return',
 			routing: { send: { type: 'query', property: 'limit' } },
 		},
+		{
+			displayName: 'Page',
+			name: 'page',
+			type: 'number',
+			displayOptions: { show: { ...show, returnAll: [false] } },
+			typeOptions: { minValue: 1 },
+			default: 1,
+			description:
+				'Which page of results to return. Read pagination.pages in the response to know how many there are.',
+			routing: { send: { type: 'query', property: 'page' } },
+		},
 	];
 }

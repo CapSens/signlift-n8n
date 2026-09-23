@@ -20,10 +20,14 @@ export async function buildDocumentUploadBody(
 	const binary = this.helpers.assertBinaryData(binaryProperty);
 	const buffer = await this.helpers.getBinaryDataBuffer(binaryProperty);
 
+	// Always application/pdf, never the incoming mime type. A generic upstream
+	// node — an HTTP download, an S3 read — often reports
+	// application/octet-stream, and forwarding that gets a valid PDF rejected.
+	// The API accepts nothing else anyway, so there is nothing to negotiate.
 	const formData = new FormData();
 	formData.append(
 		'file',
-		new Blob([new Uint8Array(buffer)], { type: binary.mimeType || 'application/pdf' }),
+		new Blob([new Uint8Array(buffer)], { type: 'application/pdf' }),
 		binary.fileName || 'document.pdf',
 	);
 

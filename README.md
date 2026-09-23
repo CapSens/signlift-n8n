@@ -146,6 +146,9 @@ A workflow that loops over many items can outrun the budget. Two things help:
 
 - Turn on **Retry On Fail** in the node's Settings tab. n8n waits a fixed
   interval and tries again, which is enough to ride out a short burst.
+  **Not on Send for Signature**: a retry re-runs the whole operation, upload
+  included, and each attempt leaves another unattached document behind. Chain
+  **Upload** and **Create** when a retry matters.
 - Reach for **Get Many** with `Return All` rather than calling **Get** in a
   loop. One paginated walk costs far fewer calls than one request per record.
 
