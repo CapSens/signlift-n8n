@@ -69,6 +69,60 @@ describe('operation routes', () => {
 	});
 });
 
+describe('custom operations', () => {
+	const custom = new Signlift().customOperations;
+
+	// A custom operation replaces the declarative router for that operation
+	// only. Everything else keeps its routing block, pagination included —
+	// which is the whole reason the node was not converted wholesale.
+	it('takes over the two creating operations and nothing else', () => {
+		expect(Object.keys(custom)).toEqual(['signatureRequest']);
+		expect(Object.keys(custom.signatureRequest).sort()).toEqual(['create', 'sendForSignature']);
+	});
+
+	it.each(['get', 'download', 'getAll'])('leaves %s on the declarative router', (operation) => {
+		expect(custom.signatureRequest).not.toHaveProperty(operation);
+	});
+
+	it.each(['document', 'auditLog', 'brandingProfile'])('leaves the %s resource untouched', (resource) => {
+		expect(custom).not.toHaveProperty(resource);
+	});
+
+	// The router is only used for nodes that define neither; defining execute
+	// would disable it for every operation at once.
+	it('defines no execute method, which would disable the router entirely', () => {
+		expect(new Signlift()).not.toHaveProperty('execute');
+	});
+});
+
+describe('resume webhook', () => {
+	const node = new Signlift();
+
+	it('declares the resume webhook the wait mode calls back on', () => {
+		expect(node.description.webhooks).toEqual([
+			{
+				name: 'default',
+				httpMethod: 'POST',
+				responseMode: 'onReceived',
+				path: '',
+				restartWebhook: true,
+			},
+		]);
+	});
+
+	// The path is a suffix of the resume url, and $execution.resumeUrl carries
+	// none: anything here registers the webhook where the callback never knocks.
+	it('keeps the webhook path empty', () => {
+		expect(node.description.webhooks?.[0].path).toBe('');
+	});
+
+	// Declaring webhooks is what the scanner's webhook-lifecycle-complete rule
+	// keys on. Honest no-ops here: the resume url belongs to n8n.
+	it.each(['checkExists', 'create', 'delete'] as const)('%s is a no-op that succeeds', async (method) => {
+		await expect(node.webhookMethods.default[method].call({} as never)).resolves.toBe(true);
+	});
+});
+
 describe('node description', () => {
 	// The deployment switch lives on the credential, and the base url is the
 	// only thing that tells staging from production.

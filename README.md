@@ -24,7 +24,7 @@ shown in full only once.
 | -------------- | ------------------------------------------------------------------------- |
 | API Key        | Production keys start with `sk_live_`, sandbox keys with `sk_sandbox_`    |
 | Deployment     | Leave on **Production** unless Signlift gave you a staging account        |
-| Webhook Secret | Only needed by the trigger. Leave empty if you use the action node alone. |
+| Webhook Secret | Only needed by **Wait for Completion**. Leave empty otherwise. |
 
 **Sandbox and production are decided by the key, not by the Deployment field.**
 A sandbox key only ever sees sandbox data: it cannot read a production envelope,
@@ -40,7 +40,9 @@ Sandbox signatures carry a visible watermark and are not legally binding.
 - **Send for Signature** — upload a PDF and send it out for signature in one
   step. The usual starting point.
 - **Create** — build an envelope on a document you already uploaded. Use this
-  when one document goes into several envelopes.
+  when one document goes into several envelopes, or when you want **Retry On
+  Fail**: a retry re-runs the whole node, and Send for Signature would upload
+  the file again on every attempt.
 - **Download** — fetch the sealed PDFs and the evidence file of a completed
   request as binary data, ready to store or attach.
 - **Get** — read an envelope. Download links for the signed PDFs and the
@@ -63,43 +65,41 @@ Sandbox signatures carry a visible watermark and are not legally binding.
 
 - **Get Many** — list the branding profiles you can apply to a signing flow.
 
-## Trigger
+## Waiting for the signature
 
-**Signlift Trigger** starts a workflow when Signlift reports a signing event:
-request completed, request expired, signer notified, signer signed, or a
-one-time code sent.
+Turn on **Wait for Completion** on *Send for Signature* or *Create*. The node
+passes this execution's own resume URL to Signlift as the callback for that
+envelope, pauses the execution, and resumes it when the envelope reaches a
+terminal state — with the callback body as its output.
 
-### Setting it up
+No trigger, no webhook URL on your Signlift application, nothing to paste
+anywhere. Each execution carries its own address, so any number of workflows
+can wait at the same time.
 
-1. Add the node to a workflow and copy the webhook URL it shows.
-2. Paste it into your Signlift external application, under **Webhook URL**.
-3. Copy the **webhook secret** shown next to your API key into the Signlift
-   credential in n8n.
+### What it needs
 
-Signlift sends every event to that one URL; the node filters on the events you
-select and acknowledges the rest.
+| | |
+| --- | --- |
+| This n8n reachable over **HTTPS** | Signlift only calls back on `https://`, so a bare `localhost` is refused with a clear error. Set `WEBHOOK_URL` to a public address. |
+| The **webhook secret** on the credential | The callback is authenticated with it. Without it the node refuses to wait rather than trusting whatever posts to the URL. |
+| **One item per execution** | An execution suspends once, so a batch is refused. Put the node behind a **Loop Over Items** to send several envelopes. |
 
-The secret is not optional. Without it the node cannot tell a Signlift event
-from anything else that finds the URL, and it refuses to run.
+### How long it waits
 
-### What it handles for you
+Indefinitely, by default. An envelope that runs out of time is not a hang:
+Signlift emits `request.expired`, which is terminal, so the execution resumes
+with the envelope and `status: "expired"`.
 
-- **Signature check** on the raw request body, in constant time. A request
-  that does not verify gets a `401` and never starts the workflow.
-- **Replays.** Signlift retries a delivery up to five times over thirteen
-  hours whenever it does not get an acknowledgement within five seconds. The
-  node remembers recent delivery ids, so a lost acknowledgement does not run
-  your workflow twice.
+**Limit Wait Time** only covers a callback that never arrives at all — this n8n
+unreachable for longer than Signlift retries, some thirteen hours. Be aware
+that on such a timeout n8n forwards the node's input rather than the envelope.
 
-### Why there is no polling trigger
+### Intermediate events
 
-Signlift's list endpoint filters and sorts on creation, and exposes no
-completion timestamp, so a polling trigger could notice new requests but not
-the event you actually care about — a request being signed. Webhooks carry
-that reliably, with retries.
-
-If you have a reason to poll anyway, compose a **Schedule Trigger** with the
-**Get Many** action and its filters: nothing here prevents it.
+`signer.notified`, `signer.otp_sent` and `signer.signed` never reach a
+callback. A waiting execution wakes on the first delivery it gets and cannot go
+back to sleep, so waking it on a partial signature would be wrong. If you need
+those events, follow them from your application's own webhook endpoint.
 
 ## Signature tags
 
