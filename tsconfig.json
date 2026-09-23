@@ -16,6 +16,9 @@
 		"esModuleInterop": true,
 		"resolveJsonModule": true,
 		"incremental": true,
+		// Outside dist: the build info is a local cache, and at 210 kB it was
+		// four fifths of the published tarball for nothing.
+		"tsBuildInfoFile": "node_modules/.cache/tsconfig.tsbuildinfo",
 		"declaration": true,
 		"sourceMap": true,
 		"skipLibCheck": true,
