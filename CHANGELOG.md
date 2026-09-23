@@ -4,6 +4,18 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the package
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-09-23
+
+Same node as 0.1.0. This version exists to carry a provenance attestation,
+which 0.1.0 could not: it was published by hand to create the package, and
+npm only signs provenance from a recognised CI. Prefer this one.
+
+### Changed
+
+- Releases are automatic. Merging a pull request that bumps the version
+  publishes it and tags the commit, with no token stored anywhere: npm trusts
+  the repository and the workflow directly.
+
 ## [0.1.0] - 2026-09-23
 
 First release. The API surface is stable but the node is young: expect the
@@ -49,4 +61,5 @@ used by the trigger alone.
   creation and exposes no completion timestamp, so polling could notice new
   requests but not a request being signed.
 
+[0.1.1]: https://github.com/CapSens/signlift-n8n/releases/tag/0.1.1
 [0.1.0]: https://github.com/CapSens/signlift-n8n/releases/tag/0.1.0
