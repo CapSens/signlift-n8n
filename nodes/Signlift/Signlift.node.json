@@ -1,0 +1,14 @@
+{
+  "node": "n8n-nodes-signlift.signlift",
+  "nodeVersion": "1.0",
+  "codexVersion": "1.0",
+  "categories": ["Utility"],
+  "resources": {
+    "credentialDocumentation": [
+      { "url": "https://doc.signlift.eu/fr/docs/guides/authentication" }
+    ],
+    "primaryDocumentation": [
+      { "url": "https://doc.signlift.eu/fr/docs/reference/overview" }
+    ]
+  }
+}
