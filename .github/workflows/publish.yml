@@ -45,12 +45,18 @@
 #
 # ─── RELEASE PROCESS ───────────────────────────────────────────────────────────
 #
-# Run the following command locally to start an interactive release:
+# `npm run release` is NOT used here. It wants to commit and push on main,
+# which branch protection refuses, and in CI it calls `npm publish`, which an
+# account with two-factor authentication turns down from a runner that cannot
+# answer a prompt.
 #
-#   npm run release
+# A release is therefore three steps:
 #
-# This will lint, build, prompt for a version bump, update the changelog,
-# commit, tag, and push — which triggers this workflow to publish to npm.
+#   1. a pull request carrying the version bump and the changelog entry
+#   2. `git tag <version> && git push origin <version>`, which runs this
+#      workflow and stages the version with its provenance attestation
+#   3. `npm stage approve <stage-id>`, or the Staged Packages page on
+#      npmjs.com — where the second factor is answered, by a human, once
 
 name: Publish
 
@@ -84,16 +90,29 @@ jobs:
       - name: Install dependencies
         run: 'npm ci'
 
-      - name: Release
-        # Publishes to npm with a provenance attestation (requires id-token: write above).
-        # Lint and build run automatically as part of the release process.
+      - name: Lint
+        run: 'npm run lint'
+
+      - name: Build
+        run: 'npm run build'
+
+      - name: Stage the release
+        # `npm stage publish` rather than `npm publish`, which is what
+        # `npm run release` calls: the account enforces two-factor
+        # authentication, and a direct publish from CI has no way to answer an
+        # interactive prompt — npm turns that down with a misleading 404.
+        # Staging never asks for 2FA, and still signs the provenance
+        # attestation that n8n requires (hence id-token: write above).
         #
-        # Option A (OIDC): leave NPM_TOKEN unset — the token step is skipped and
-        #   npm uses the OIDC exchange instead.
-        # Option B (token): set NPM_TOKEN in repo secrets — it is written to
-        #   .npmrc here before publishing.
+        # The version waits in the registry until a maintainer approves it:
+        #
+        #   npm stage list n8n-nodes-signlift
+        #   npm stage approve <stage-id>
+        #
+        # or from the Staged Packages page on npmjs.com. Approval is where the
+        # second factor is answered, by a human, once.
         run: |
           [ -n "$NPM_TOKEN" ] && npm config set //registry.npmjs.org/:_authToken "$NPM_TOKEN"
-          npm run release
+          npm stage publish --provenance
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
