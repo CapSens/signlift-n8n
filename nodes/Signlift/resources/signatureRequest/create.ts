@@ -1,0 +1,257 @@
+import type {
+	IDataObject,
+	IExecuteSingleFunctions,
+	IHttpRequestOptions,
+	INodeProperties,
+} from 'n8n-workflow';
+
+const showOnlyForCreate = {
+	operation: ['create'],
+	resource: ['signatureRequest'],
+};
+
+interface SignerRow {
+	firstName: string;
+	lastName: string;
+	email: string;
+	phone?: string;
+	otpChannel?: string;
+	tag?: string;
+}
+
+/**
+ * Assembles the nested payload the API expects from the flat form above.
+ *
+ * Two things are done for the user rather than asked of them. The `ref` that
+ * binds a signer to a stamp is generated here: it is not persisted, it only
+ * has to be unique within the payload, so asking for it would be asking the
+ * user to invent an identifier for nothing. And the signing order follows the
+ * order of the rows, which is what a sequential mode means to anyone reading
+ * the form.
+ */
+export async function buildSignatureRequestBody(
+	this: IExecuteSingleFunctions,
+	requestOptions: IHttpRequestOptions,
+): Promise<IHttpRequestOptions> {
+	const mode = this.getNodeParameter('mode') as string;
+	const documentId = this.getNodeParameter('documentId') as number;
+	const signerRows = (this.getNodeParameter('signers') as IDataObject)?.signer as
+		| SignerRow[]
+		| undefined;
+	const options = (this.getNodeParameter('options', {}) as IDataObject) ?? {};
+
+	const signers = (signerRows ?? []).map((row, index) => {
+		const signer: IDataObject = {
+			ref: `signer-${index}`,
+			first_name: row.firstName,
+			last_name: row.lastName,
+			email: row.email,
+		};
+
+		if (mode === 'sequential') signer.order = index + 1;
+		if (row.otpChannel) signer.otp_channel = row.otpChannel;
+		// The API drops the phone when the channel is email, but sending one
+		// with an SMS channel is what makes the text message possible at all.
+		if (row.phone) signer.phone = row.phone;
+
+		return signer;
+	});
+
+	const documentSigners = (signerRows ?? []).map((row, index) => ({
+		signer_ref: `signer-${index}`,
+		stamp: {
+			type: 'magic_field',
+			value: { tag: row.tag },
+		},
+	}));
+
+	// The branding picker is a resource locator, so it arrives as {mode, value}
+	// rather than as the integer the API wants.
+	const brandingProfile = options.branding_profile_id as IDataObject | string | undefined;
+	if (brandingProfile !== undefined) {
+		const raw =
+			typeof brandingProfile === 'object' ? brandingProfile.value : brandingProfile;
+		if (raw === '' || raw === undefined || raw === null) {
+			delete options.branding_profile_id;
+		} else {
+			options.branding_profile_id = Number(raw);
+		}
+	}
+
+	const signatureRequest: IDataObject = {
+		mode,
+		validity_days: this.getNodeParameter('validityDays') as number,
+		signers,
+		documents: [{ id: documentId, signers: documentSigners }],
+		...options,
+	};
+
+	requestOptions.body = { signature_request: signatureRequest };
+
+	return requestOptions;
+}
+
+export const signatureRequestCreateDescription: INodeProperties[] = [
+	{
+		displayName: 'Document ID',
+		name: 'documentId',
+		type: 'number',
+		required: true,
+		default: 0,
+		displayOptions: { show: showOnlyForCreate },
+		description: 'The document to sign, as returned by an upload',
+	},
+	{
+		displayName: 'Mode',
+		name: 'mode',
+		type: 'options',
+		options: [
+			{
+				name: 'Sequential',
+				value: 'sequential',
+				description: 'Each signer is invited once the previous one has signed',
+			},
+			{
+				name: 'Parallel',
+				value: 'parallel',
+				description: 'Every signer is invited at the same time',
+			},
+		],
+		default: 'sequential',
+		displayOptions: { show: showOnlyForCreate },
+	},
+	{
+		displayName: 'Validity (Days)',
+		name: 'validityDays',
+		type: 'number',
+		typeOptions: { minValue: 1, maxValue: 90 },
+		default: 30,
+		displayOptions: { show: showOnlyForCreate },
+		description: 'How long the signers have to sign before the request expires',
+	},
+	{
+		displayName: 'Signers',
+		name: 'signers',
+		type: 'fixedCollection',
+		typeOptions: { multipleValues: true, sortable: true },
+		placeholder: 'Add Signer',
+		default: {},
+		required: true,
+		displayOptions: { show: showOnlyForCreate },
+		description: 'In sequential mode, signers are invited in the order listed here',
+		options: [
+			{
+				displayName: 'Signer',
+				name: 'signer',
+				values: [
+					{
+						displayName: 'Email',
+						name: 'email',
+						type: 'string',
+						placeholder: 'name@email.com',
+						default: '',
+						required: true,
+					},
+					{
+						displayName: 'First Name',
+						name: 'firstName',
+						type: 'string',
+						default: '',
+						required: true,
+					},
+					{
+						displayName: 'Last Name',
+						name: 'lastName',
+						type: 'string',
+						default: '',
+						required: true,
+					},
+					{
+						displayName: 'One-Time Code Channel',
+						name: 'otpChannel',
+						type: 'options',
+						options: [
+							{ name: 'Email', value: 'email' },
+							{ name: 'SMS', value: 'sms' },
+						],
+						default: 'email',
+						description: 'How the signer receives the code that authenticates the signature',
+					},
+					{
+						displayName: 'Phone',
+						name: 'phone',
+						type: 'string',
+						default: '',
+						placeholder: '+33612345678',
+						displayOptions: { show: { otpChannel: ['sms'] } },
+						description: 'Required when the code is sent by SMS. Pro and Enterprise plans only.',
+					},
+					{
+						displayName: 'Signature Tag',
+						name: 'tag',
+						type: 'string',
+						default: '',
+						required: true,
+						placeholder: '[SIG_JEAN]',
+						description:
+							'Text that must appear verbatim in the PDF, where this signer signs. Write it in your document template, in white or tiny type if you do not want it visible.',
+					},
+				],
+			},
+		],
+	},
+	{
+		displayName: 'Options',
+		name: 'options',
+		type: 'collection',
+		placeholder: 'Add Option',
+		default: {},
+		displayOptions: { show: showOnlyForCreate },
+		options: [
+			{
+				displayName: 'Send Invitation Emails',
+				name: 'send_email',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether Signlift emails the signers. Leave off to handle the invitations yourself from the signing URLs the response returns.',
+			},
+			{
+				displayName: 'Notify Signers On Completion',
+				name: 'notify_signers_on_completion',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether each signer receives the signed PDFs and the evidence file once everyone has signed',
+			},
+			{
+				displayName: 'Require Initials',
+				name: 'initials_required',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether to stamp initials on every page where the signer has no signature. Pro and Enterprise plans only.',
+			},
+			{
+				displayName: 'Branding Profile',
+				name: 'branding_profile_id',
+				type: 'resourceLocator',
+				default: { mode: 'list', value: '' },
+				description: 'Colors applied to the signing flow. Pro and Enterprise plans only.',
+				modes: [
+					{
+						displayName: 'From List',
+						name: 'list',
+						type: 'list',
+						typeOptions: { searchListMethod: 'getBrandingProfiles', searchable: true },
+					},
+					{
+						displayName: 'By ID',
+						name: 'id',
+						type: 'string',
+					},
+				],
+			},
+		],
+	},
+];

@@ -36,11 +36,37 @@ Sandbox signatures carry a visible watermark and are not legally binding.
 
 ### Signature Request
 
-- **Get Many** — list the signature requests of your organization, with filters
-  on status and creation date.
+- **Create** — send a document out for signature.
+- **Get** — read an envelope. Download links for the signed PDFs and the
+  evidence file appear once `finalized` is true.
+- **Get Many** — list your signature requests, with filters on status and
+  creation date.
 
-More operations are on the way: uploading documents, creating signature
-requests, reading an envelope and its audit trail, and triggers.
+### Document
+
+- **Get** — read a document and get a link to download the original PDF.
+- **Get Many** — list your documents.
+
+### Audit Log
+
+- **Get Many** — read the audit trail of a signature request. It is what the
+  evidence file prints, in a machine-readable form.
+
+### Branding Profile
+
+- **Get Many** — list the branding profiles you can apply to a signing flow.
+
+Uploading a document and the triggers are on the way.
+
+## Signature tags
+
+A signer signs where their **signature tag** appears in the PDF. Put a marker
+such as `[SIG_JEAN]` in your document template at the place each signer should
+sign, then give the node the same text. Write it in white or in a tiny font if
+you do not want it visible in the finished document.
+
+This beats positioning a signature by page and coordinates, which breaks the
+moment the document reflows.
 
 ## Resources
 

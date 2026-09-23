@@ -1,5 +1,9 @@
 import { NodeConnectionTypes, type INodeType, type INodeTypeDescription } from 'n8n-workflow';
 import { signatureRequestDescription } from './resources/signatureRequest';
+import { documentDescription } from './resources/document';
+import { auditLogDescription } from './resources/auditLog';
+import { brandingProfileDescription } from './resources/brandingProfile';
+import { getBrandingProfiles } from './listSearch/getBrandingProfiles';
 
 export class Signlift implements INodeType {
 	description: INodeTypeDescription = {
@@ -37,14 +41,23 @@ export class Signlift implements INodeType {
 				type: 'options',
 				noDataExpression: true,
 				options: [
-					{
-						name: 'Signature Request',
-						value: 'signatureRequest',
-					},
+					{ name: 'Signature Request', value: 'signatureRequest' },
+					{ name: 'Document', value: 'document' },
+					{ name: 'Audit Log', value: 'auditLog' },
+					{ name: 'Branding Profile', value: 'brandingProfile' },
 				],
 				default: 'signatureRequest',
 			},
 			...signatureRequestDescription,
+			...documentDescription,
+			...auditLogDescription,
+			...brandingProfileDescription,
 		],
+	};
+
+	methods = {
+		listSearch: {
+			getBrandingProfiles,
+		},
 	};
 }
