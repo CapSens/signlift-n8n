@@ -135,6 +135,23 @@ not something to hand to an agent by default.
 - [Authentication guide](https://doc.signlift.eu/fr/docs/guides/authentication)
 - [n8n community nodes documentation](https://docs.n8n.io/integrations/#community-nodes)
 
+## Rate limits
+
+Calls are counted **per organization**, over a per-minute and a per-hour
+window, with independent budgets for sandbox and production. Every
+authenticated response carries `X-RateLimit-Limit`, `X-RateLimit-Remaining`
+and `X-RateLimit-Reset`.
+
+A workflow that loops over many items can outrun the budget. Two things help:
+
+- Turn on **Retry On Fail** in the node's Settings tab. n8n waits a fixed
+  interval and tries again, which is enough to ride out a short burst.
+- Reach for **Get Many** with `Return All` rather than calling **Get** in a
+  loop. One paginated walk costs far fewer calls than one request per record.
+
+A refused call answers `429` with `Retry-After`. n8n surfaces it as *"The
+service is receiving too many requests from you"*.
+
 ## Compatibility
 
 Requires n8n 1.x with community nodes enabled.
