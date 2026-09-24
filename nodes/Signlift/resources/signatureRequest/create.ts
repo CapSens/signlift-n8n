@@ -85,6 +85,20 @@ export function buildPayload(this: IExecuteSingleFunctions, documentId: number):
 	// Number('abc') is NaN, which JSON.stringify turns into null without
 	// complaining, and the envelope would then be created with no branding at
 	// all while the user believes they picked one.
+	// The API refuses an envelope it is asked to email without this, with a
+	// message naming a field the interface never showed. Raised here so the
+	// failure names the checkbox the user has to tick.
+	if (options.send_email === true && options.identity_declaration_accepted !== true) {
+		throw new NodeOperationError(
+			this.getNode(),
+			'Sending invitation emails requires the identity declaration',
+			{
+				description:
+					'Signlift emails the signers on your behalf, so it asks you to declare having verified their identity. Tick "I Have Verified the Signers\' Identity" under Options, or turn off "Send Invitation Emails" and hand out the signing URLs yourself.',
+			},
+		);
+	}
+
 	const brandingProfile = options.branding_profile_id as IDataObject | string | undefined;
 	if (brandingProfile !== undefined) {
 		const raw = typeof brandingProfile === 'object' ? brandingProfile.value : brandingProfile;
@@ -231,30 +245,6 @@ export const signatureRequestCreateDescription: INodeProperties[] = [
 		displayOptions: { show: showForBothCreators },
 		options: [
 			{
-				displayName: 'Send Invitation Emails',
-				name: 'send_email',
-				type: 'boolean',
-				default: false,
-				description:
-					'Whether Signlift emails the signers. Leave off to handle the invitations yourself from the signing URLs the response returns.',
-			},
-			{
-				displayName: 'Notify Signers On Completion',
-				name: 'notify_signers_on_completion',
-				type: 'boolean',
-				default: false,
-				description:
-					'Whether each signer receives the signed PDFs and the evidence file once everyone has signed',
-			},
-			{
-				displayName: 'Require Initials',
-				name: 'initials_required',
-				type: 'boolean',
-				default: false,
-				description:
-					'Whether to stamp initials on every page where the signer has no signature. Pro and Enterprise plans only.',
-			},
-			{
 				displayName: 'Branding Profile',
 				name: 'branding_profile_id',
 				type: 'resourceLocator',
@@ -273,6 +263,38 @@ export const signatureRequestCreateDescription: INodeProperties[] = [
 						type: 'string',
 					},
 				],
+			},
+			{
+				displayName: 'I Have Verified the Signers\' Identity',
+				name: 'identity_declaration_accepted',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether you declare having verified the identity of every signer. Required by the API when Signlift sends the invitations on your behalf, and refused otherwise. This is a statement you make, so the node never sets it for you.',
+			},
+			{
+				displayName: 'Notify Signers On Completion',
+				name: 'notify_signers_on_completion',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether each signer receives the signed PDFs and the evidence file once everyone has signed',
+			},
+			{
+				displayName: 'Require Initials',
+				name: 'initials_required',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether to stamp initials on every page where the signer has no signature. Pro and Enterprise plans only.',
+			},
+			{
+				displayName: 'Send Invitation Emails',
+				name: 'send_email',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether Signlift emails the signers. Leave off to handle the invitations yourself from the signing URLs the response returns. Turning this on requires the identity declaration below.',
 			},
 		],
 	},

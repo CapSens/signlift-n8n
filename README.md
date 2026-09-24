@@ -26,6 +26,17 @@ shown in full only once.
 | Deployment     | Leave on **Production** unless Signlift gave you a staging account        |
 | Webhook Secret | Only needed by **Wait for Completion**. Leave empty otherwise. |
 
+### Sending the invitations
+
+**Send Invitation Emails** makes Signlift email the signers. Because Signlift
+then writes to them on your behalf, the API requires you to declare having
+verified who they are: tick **I Have Verified the Signers' Identity** in the
+same Options collection. The node never sets it for you — it is a statement you
+make, not a flag.
+
+Left off, no email goes out and you hand out the `signing_url` of each signer
+from the node's output yourself.
+
 **Sandbox and production are decided by the key, not by the Deployment field.**
 A sandbox key only ever sees sandbox data: it cannot read a production envelope,
 download a production PDF, or build an envelope from a production document. That

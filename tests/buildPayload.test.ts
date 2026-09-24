@@ -104,13 +104,51 @@ describe('buildPayload / branding profile', () => {
 		).toThrow(/not a valid id: abc/);
 	});
 
+	it('passes the identity declaration through when emails are sent', () => {
+		const payload = build({
+			signers: { signer: [signerRow()] },
+			options: { send_email: true, identity_declaration_accepted: true },
+		});
+
+		expect(payload).toMatchObject({ send_email: true, identity_declaration_accepted: true });
+	});
+
+	// The API refuses this combination with a message naming a field the
+	// interface never showed, so the node names the checkbox instead.
+	it('refuses to send invitations without the identity declaration', () => {
+		expect(() =>
+			build({ signers: { signer: [signerRow()] }, options: { send_email: true } }),
+		).toThrow(/requires the identity declaration/);
+	});
+
+	it('refuses an explicitly declined declaration just the same', () => {
+		expect(() =>
+			build({
+				signers: { signer: [signerRow()] },
+				options: { send_email: true, identity_declaration_accepted: false },
+			}),
+		).toThrow(/requires the identity declaration/);
+	});
+
+	it('does not ask for the declaration when no email is sent', () => {
+		const payload = build({
+			signers: { signer: [signerRow()] },
+			options: { send_email: false },
+		});
+
+		expect(payload).toMatchObject({ send_email: false });
+	});
+
 	it('keeps the other options untouched', () => {
 		const payload = build({
 			signers: { signer: [signerRow()] },
-			options: { send_email: true, initials_required: false },
+			options: { notify_signers_on_completion: true, initials_required: false },
 		});
 
-		expect(payload).toMatchObject({ send_email: true, initials_required: false });
+		expect(payload).toMatchObject({
+			notify_signers_on_completion: true,
+			initials_required: false,
+		});
 	});
 });
 

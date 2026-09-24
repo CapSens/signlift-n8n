@@ -4,6 +4,22 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the package
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-09-24
+
+### Fixed
+
+- **Send Invitation Emails** could never succeed. The API refuses to email
+  signers without `identity_declaration_accepted`, a field the node did not
+  offer — and which is absent from Signlift's OpenAPI contract, where the
+  node's parameters were written from. Turning the option on always answered
+  422, naming a field nothing in the interface had ever shown.
+
+  The option now sits beside it as **I Have Verified the Signers' Identity**,
+  and the node refuses the combination itself, before the call, with a message
+  naming the checkbox to tick. It is never set implicitly: it is a statement
+  the sender makes about having verified who is signing, so it has to be made
+  deliberately.
+
 ## [0.2.0] - 2026-09-23
 
 ### Added
