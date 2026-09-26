@@ -4,6 +4,7 @@ import { signatureRequestGetDescription } from './get';
 import { buildSignatureRequestBody, signatureRequestCreateDescription } from './create';
 import { sendForSignatureDescription, uploadThenCreate } from './sendForSignature';
 import { downloadDescription, emitSignedDocuments } from './download';
+import { subscriptionDescription } from './subscribe';
 
 const showOnlyForSignatureRequests = {
 	resource: ['signatureRequest'],
@@ -80,6 +81,7 @@ export const signatureRequestDescription: INodeProperties[] = [
 	},
 	...sendForSignatureDescription,
 	...signatureRequestCreateDescription,
+	...subscriptionDescription,
 	...downloadDescription,
 	...signatureRequestGetDescription,
 	...signatureRequestGetManyDescription,

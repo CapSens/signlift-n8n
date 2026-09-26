@@ -243,3 +243,39 @@ describe('deployment', () => {
 		expect(callsOf(context)[0]).toMatchObject({ baseURL: expected });
 	});
 });
+
+// The subscription is registered from inside the creating call, so it applies
+// whether the node waits or not.
+describe('subscribing a url to the envelope', () => {
+	it('registers it right after the envelope exists', async () => {
+		const context = executeContext({
+			parameters: {
+				...BASE,
+				operation: 'create',
+				documentId: 42,
+				subscription: { url: 'https://n8n.test/webhook/x' },
+			},
+			responses: [ENVELOPE, { id: 44 }],
+		});
+
+		await run(context);
+
+		const [, subscribe] = callsOf(context);
+		expect(subscribe).toMatchObject({
+			method: 'POST',
+			url: '/api/v1/webhook_endpoints',
+			body: { webhook_endpoint: { signature_request_id: 7 } },
+		});
+	});
+
+	it('registers nothing when the option is left empty', async () => {
+		const context = executeContext({
+			parameters: { ...BASE, operation: 'create', documentId: 42 },
+			responses: [ENVELOPE],
+		});
+
+		await run(context);
+
+		expect(callsOf(context)).toHaveLength(1);
+	});
+});

@@ -1,4 +1,4 @@
-import type { IDataObject, IExecuteFunctions, IExecuteSingleFunctions } from 'n8n-workflow';
+import type { IExecuteFunctions, IExecuteSingleFunctions } from 'n8n-workflow';
 
 /**
  * Lets the payload builders, written against the per-item context the
@@ -19,10 +19,4 @@ export function singleItemContext(
 			context.getNodeParameter(name, itemIndex, fallback),
 		helpers: context.helpers,
 	} as unknown as IExecuteSingleFunctions;
-}
-
-export function baseUrlFor(credentials: IDataObject): string {
-	return credentials.deployment === 'staging'
-		? 'https://app.staging-signlift.eu'
-		: 'https://app.signlift.eu';
 }

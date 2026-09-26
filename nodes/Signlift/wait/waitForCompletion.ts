@@ -10,7 +10,9 @@ import {
 } from 'n8n-workflow';
 import { buildPayload } from '../resources/signatureRequest/create';
 import { documentUploadFormData } from '../resources/document/upload';
-import { baseUrlFor, singleItemContext } from './resumeContext';
+import { singleItemContext } from './resumeContext';
+import { baseUrlFor } from '../shared/baseUrl';
+import { subscribeToEnvelope } from '../resources/signatureRequest/subscribe';
 
 /** A day of slack on top of the envelope's own expiry. */
 const DEADLINE_MARGIN_MS = 24 * 60 * 60 * 1000;
@@ -24,7 +26,7 @@ function assertResumableOverHttps(context: IExecuteFunctions, resumeUrl: string)
 		`Waiting needs this n8n to be reachable over HTTPS, and its resume URL is ${resumeUrl}`,
 		{
 			description:
-				'Signlift only calls back on https. Set WEBHOOK_URL to a public https address, or turn off "Wait for Completion" and use the Signlift Trigger instead.',
+				'Signlift only calls back on https, for a waiting execution as for a registered endpoint. Set WEBHOOK_URL to a public https address, or turn off "Wait for Completion" and poll the envelope with Get.',
 		},
 	);
 }
@@ -108,13 +110,17 @@ async function createEnvelope(
 	const payload = buildPayload.call(singleItemContext(this, itemIndex), documentId);
 	if (callbackUrl) payload.callback_url = callbackUrl;
 
-	return (await this.helpers.httpRequestWithAuthentication.call(this, 'signliftApi', {
+	const envelope = (await this.helpers.httpRequestWithAuthentication.call(this, 'signliftApi', {
 		method: 'POST',
 		url: '/api/v1/signature_requests',
 		baseURL,
 		body: { signature_request: payload },
 		json: true,
 	})) as IDataObject;
+
+	await subscribeToEnvelope.call(this, itemIndex, envelope, baseURL);
+
+	return envelope;
 }
 
 async function uploadDocument(
