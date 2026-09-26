@@ -63,6 +63,7 @@ describe('trigger lifecycle', () => {
 			getNodeParameter: (name: string, fallback?: unknown) =>
 				name === 'subscribeTo' ? 'routed' : fallback,
 			getWorkflowStaticData: () => ({}),
+			getNodeWebhookUrl: () => undefined,
 		};
 
 		await expect(node.webhookMethods.default[method].call(context as never)).resolves.toBe(true);

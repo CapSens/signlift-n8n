@@ -101,6 +101,31 @@ describe('checkExists', () => {
 		await expect(checkExists.call(context as never)).resolves.toBe(false);
 	});
 
+	// A workflow pointing single envelopes at this trigger registers its URL
+	// too. Reading one of those as the trigger's own registration would leave
+	// it subscribed to nothing.
+	it('ignores an envelope-bound endpoint on the same url', async () => {
+		const context = hookContext({
+			parameters: { events: ['request.completed'] },
+			responses: [
+				{
+					data: [
+						{
+							id: 40,
+							url: WEBHOOK_URL,
+							events: ['request.completed'],
+							active: true,
+							signature_request_id: 9,
+						},
+					],
+				},
+			],
+		});
+
+		await expect(checkExists.call(context as never)).resolves.toBe(false);
+		expect(context.staticData.endpointId).toBeUndefined();
+	});
+
 	it('refuses a webhook url Signlift cannot call back on', async () => {
 		const context = hookContext({ webhookUrl: 'http://localhost:5678/webhook/abc' });
 
@@ -224,13 +249,6 @@ describe('create', () => {
 });
 
 describe('remove', () => {
-	it('has nothing to unregister when nothing was registered', async () => {
-		const context = hookContext();
-
-		await expect(remove.call(context as never)).resolves.toBe(true);
-		expect(context.sent).toHaveLength(0);
-	});
-
 	it('unregisters the endpoint and forgets it', async () => {
 		const context = hookContext({ staticData: { endpointId: 31 } });
 
@@ -256,6 +274,55 @@ describe('remove', () => {
 
 		await expect(remove.call(context as never)).rejects.toThrow();
 		expect(context.staticData.endpointId).toBe(31);
+	});
+
+	// n8n drops the static data of any workflow whose id runs past 21
+	// characters, and loses it outright when a workflow is imported over.
+	// Without this the subscription holds a slot for good.
+	it('finds what it registered when it no longer remembers', async () => {
+		const context = hookContext({
+			responses: [{ data: [appWide(31, WEBHOOK_URL)] }, {}],
+		});
+
+		await expect(remove.call(context as never)).resolves.toBe(true);
+		expect(context.sent[0].qs).toEqual({ url: WEBHOOK_URL });
+		expect(context.sent[1]).toMatchObject({
+			method: 'DELETE',
+			url: '/api/v1/webhook_endpoints/31',
+		});
+	});
+
+	it('does nothing when the lookup finds nothing either', async () => {
+		const context = hookContext({ responses: [{ data: [] }] });
+
+		await expect(remove.call(context as never)).resolves.toBe(true);
+		expect(context.sent).toHaveLength(1);
+	});
+
+	// The same URL can also carry envelope-bound subscriptions, taken out by
+	// a workflow pointing single envelopes at this trigger. Unregistering one
+	// of those would cut someone else off.
+	it('leaves an envelope-bound subscription on the same url alone', async () => {
+		const context = hookContext({
+			responses: [
+				{
+					data: [
+						{ id: 40, url: WEBHOOK_URL, events: [], active: true, signature_request_id: 9 },
+						{ id: 41, url: WEBHOOK_URL, events: [], active: true, signature_request_id: 8 },
+					],
+				},
+			],
+		});
+
+		await expect(remove.call(context as never)).resolves.toBe(true);
+		expect(context.sent).toHaveLength(1);
+	});
+
+	it('does not reach for the network on a url the API would refuse', async () => {
+		const context = hookContext({ webhookUrl: 'http://localhost:5678/webhook/abc' });
+
+		await expect(remove.call(context as never)).resolves.toBe(true);
+		expect(context.sent).toHaveLength(0);
 	});
 
 	// NodeApiError spells the status as a string under httpCode, where a raw
