@@ -1,6 +1,6 @@
 import { createHmac } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { isSignatureValid } from '../nodes/Signlift/wait/signature';
+import { isSignatureValid } from '../nodes/Signlift/shared/signature';
 
 const SECRET = 'whsec_test';
 const BODY = Buffer.from('{"event":"request.completed"}');

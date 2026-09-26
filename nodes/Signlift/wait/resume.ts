@@ -4,7 +4,7 @@ import {
 	type IWebhookFunctions,
 	type IWebhookResponseData,
 } from 'n8n-workflow';
-import { isSignatureValid } from './signature';
+import { isSignatureValid } from '../shared/signature';
 
 /** Only terminal events reach a callback, so anything else is not ours. */
 const TERMINAL_EVENTS = ['request.completed', 'request.expired'];
