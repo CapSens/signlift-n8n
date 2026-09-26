@@ -155,6 +155,14 @@ The first three are the ones **Wait for Completion** can never deliver: an
 execution wakes once and cannot go back to sleep, so waking it on a partial
 signature would be wrong. A trigger has no such problem.
 
+### Dropping a repeat
+
+Delivery is at-least-once: a retry after a timeout that in fact succeeded
+posts the same body again. The trigger's output carries `delivery_id`, stable
+across those retries and the only thing telling two deliveries of one event
+apart. Compare it against what you have already handled if a second run would
+do damage.
+
 ### Subscribe To
 
 **All Signature Requests** registers this workflow against everything the API

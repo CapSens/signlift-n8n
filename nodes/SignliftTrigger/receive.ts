@@ -45,9 +45,17 @@ export async function receiveEvent(this: IWebhookFunctions): Promise<IWebhookRes
 		return { webhookResponse: { status: 'ignored' } };
 	}
 
+	// Delivery is at-least-once: a retry after a timeout that in fact
+	// succeeded posts the same body again, under the same delivery id. Handed
+	// to the workflow so it can drop the repeat — nothing else in the body
+	// tells two deliveries of one event apart.
 	return {
 		workflowData: [
-			this.helpers.returnJsonArray({ event, ...(this.getBodyData() as IDataObject) }),
+			this.helpers.returnJsonArray({
+				event,
+				delivery_id: headers['x-signlift-delivery'],
+				...(this.getBodyData() as IDataObject),
+			}),
 		],
 	};
 }

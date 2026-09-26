@@ -8,6 +8,7 @@ function eventContext({
 	body = { event: 'request.completed', signature_request: { id: 7, status: 'completed' } },
 	event = 'request.completed' as string | undefined,
 	events = ['request.completed', 'request.expired'] as string[],
+	delivery = '4821' as string | undefined,
 	secret = SECRET as string | undefined,
 	signature = undefined as string | undefined,
 } = {}) {
@@ -22,6 +23,7 @@ function eventContext({
 			getNodeParameter: vi.fn(() => events),
 			getHeaderData: () => ({
 				'x-signlift-event': event,
+				'x-signlift-delivery': delivery,
 				'x-signlift-signature':
 					signature ?? `sha256=${createHmac('sha256', SECRET).update(Buffer.from(raw)).digest('hex')}`,
 			}),
@@ -47,8 +49,30 @@ describe('receiveEvent', () => {
 		const { result } = await run();
 
 		expect(result.workflowData).toEqual([
-			[{ event: 'request.completed', signature_request: { id: 7, status: 'completed' } }],
+			[
+				{
+					event: 'request.completed',
+					delivery_id: '4821',
+					signature_request: { id: 7, status: 'completed' },
+				},
+			],
 		]);
+	});
+
+	// Delivery is at-least-once, and nothing else in the body tells two
+	// deliveries of one event apart.
+	it('hands the delivery id to the workflow so a repeat can be dropped', async () => {
+		const { result } = await run({ delivery: '99' });
+
+		expect((result.workflowData as Array<Array<{ delivery_id?: string }>>)[0][0].delivery_id).toBe(
+			'99',
+		);
+	});
+
+	it('copes with a delivery header that is not sent', async () => {
+		const { result } = await run({ delivery: undefined });
+
+		expect(result).toHaveProperty('workflowData');
 	});
 
 	it('takes an intermediate event when the node asked for it', async () => {

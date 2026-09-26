@@ -24,6 +24,9 @@ follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   everything the API key creates, *Only Requests Pointed at This URL*
   registers nothing and waits to be named by an envelope.
 
+  Its output carries `delivery_id`. Delivery is at-least-once, and nothing else
+  in the body tells two deliveries of one event apart.
+
 - **Subscribe a URL to This Envelope** on *Send for Signature* and *Create*.
   Registers a URL against the envelope just created, and nothing else. Signlift
   unregisters it on its own once that envelope is settled, so a workflow
