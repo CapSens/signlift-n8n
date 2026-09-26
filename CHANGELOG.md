@@ -4,6 +4,49 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the package
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-09-26
+
+### Added
+
+- **Signlift Trigger**, a node of its own. Activating a workflow registers its
+  URL with Signlift, deactivating unregisters it, and an event starts a run.
+  It was dropped in 0.2.0 because the API had no way to subscribe a URL; the
+  webhook endpoints API added since is what brings it back, and this time the
+  lifecycle is real rather than a set of no-ops.
+
+  It carries the events a waiting execution can never see — `signer.notified`,
+  `signer.otp_sent`, `signer.signed` — which until now had to be read from
+  your own backend. Every event is verified against the application's webhook
+  secret before a run starts, and a body that fails is answered 401 without
+  starting one.
+
+  **Subscribe To** decides what it registers: *All Signature Requests* takes
+  everything the API key creates, *Only Requests Pointed at This URL*
+  registers nothing and waits to be named by an envelope.
+
+- **Subscribe a URL to This Envelope** on *Send for Signature* and *Create*.
+  Registers a URL against the envelope just created, and nothing else. Signlift
+  unregisters it on its own once that envelope is settled, so a workflow
+  handling hundreds of signatures leaves nothing behind. This is the one path
+  that takes intermediate events per envelope, which **Wait for Completion**
+  cannot: an execution wakes once and cannot go back to sleep.
+
+- **Webhook Endpoint** resource on the action node, with Create, Get, Get Many,
+  Update and Delete. Delete unregisters without deleting, so the same URL can
+  be registered again later.
+
+### Changed
+
+- The webhook secret is now described for what it does — authenticate an
+  incoming event — rather than for the trigger that had been removed.
+
+### Fixed
+
+- Turning on **Wait for Completion** without HTTPS pointed at a Signlift
+  Trigger that did not exist, and which would not have helped: Signlift
+  refuses http for a callback and for a registered endpoint alike. The message
+  now says so.
+
 ## [0.2.1] - 2026-09-24
 
 ### Fixed

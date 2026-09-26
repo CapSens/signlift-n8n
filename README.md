@@ -6,7 +6,10 @@ eIDAS electronic signature API.
 Send a PDF for signature, follow an envelope through to completion, and collect
 the signed document and its evidence file — from an n8n workflow.
 
-[Installation](#installation) · [Credentials](#credentials) · [Operations](#operations) · [Resources](#resources)
+The package holds two nodes: **Signlift**, which acts, and **Signlift Trigger**,
+which starts a workflow when an envelope moves.
+
+[Installation](#installation) · [Credentials](#credentials) · [Operations](#operations) · [Starting a workflow on an event](#starting-a-workflow-on-an-event) · [Resources](#resources)
 
 ## Installation
 
@@ -24,7 +27,7 @@ shown in full only once.
 | -------------- | ------------------------------------------------------------------------- |
 | API Key        | Production keys start with `sk_live_`, sandbox keys with `sk_sandbox_`    |
 | Deployment     | Leave on **Production** unless Signlift gave you a staging account        |
-| Webhook Secret | Only needed by **Wait for Completion**. Leave empty otherwise. |
+| Webhook Secret | Authenticates incoming events. Needed by the **Signlift Trigger** and by **Wait for Completion**, and by nothing else. |
 
 ### Sending the invitations
 
@@ -76,6 +79,22 @@ Sandbox signatures carry a visible watermark and are not legally binding.
 
 - **Get Many** — list the branding profiles you can apply to a signing flow.
 
+### Webhook Endpoint
+
+- **Create** — register a URL to receive events, for every envelope or for one.
+  Registering a URL that is already known switches it back on rather than
+  refusing it as a duplicate.
+- **Delete** — stop sending events to an endpoint. The registration is kept, so
+  the same URL can come back later.
+- **Get** / **Get Many** — read what this API key has registered. An endpoint
+  registered under another key is never listed, whatever the organization.
+- **Update** — change the event filter, or switch an endpoint on and off. The
+  URL is immutable: an integration matches its endpoint by URL, and moving one
+  would strand it.
+
+The Signlift Trigger does all of this for itself. Reach for this resource when
+a workflow manages someone else's subscriptions.
+
 ## Waiting for the signature
 
 Turn on **Wait for Completion** on *Send for Signature* or *Create*. The node
@@ -110,7 +129,60 @@ that on such a timeout n8n forwards the node's input rather than the envelope.
 `signer.notified`, `signer.otp_sent` and `signer.signed` never reach a
 callback. A waiting execution wakes on the first delivery it gets and cannot go
 back to sleep, so waking it on a partial signature would be wrong. If you need
-those events, follow them from your application's own webhook endpoint.
+those events, use the [Signlift Trigger](#starting-a-workflow-on-an-event).
+
+## Starting a workflow on an event
+
+Add a **Signlift Trigger**. Activating the workflow registers its URL with
+Signlift, deactivating unregisters it, and an event starts a run.
+
+Nothing to paste anywhere, and nothing to clean up: the node holds the whole
+lifecycle. It needs this n8n reachable over **HTTPS** and the webhook secret on
+the credential — every event is verified against it before a run starts, and a
+body whose signature does not match is answered `401` without starting one.
+
+### What it hears
+
+| | |
+| --- | --- |
+| `signer.notified` | A signer has been invited |
+| `signer.otp_sent` | A signer has been sent their one-time code |
+| `signer.signed` | One signer has signed, and the envelope is not finished |
+| `request.completed` | Every signer has signed |
+| `request.expired` | The envelope ran out of time |
+
+The first three are the ones **Wait for Completion** can never deliver: an
+execution wakes once and cannot go back to sleep, so waking it on a partial
+signature would be wrong. A trigger has no such problem.
+
+### Subscribe To
+
+**All Signature Requests** registers this workflow against everything the API
+key creates. **Only Requests Pointed at This URL** registers nothing: the
+workflow sits waiting to be named, by the option below or by your own backend.
+
+An API key holds **three** subscriptions to everything at once, and an
+organization migrated from the old single-webhook field already spends one on
+it. One workflow subscribed to several events, with a **Switch** after it,
+costs a single slot and is the way to spend them well. Past the limit the node
+says so and names the URLs holding the slots.
+
+Envelope-bound subscriptions are counted per envelope instead — five each,
+with no ceiling on how many envelopes.
+
+### One workflow per envelope
+
+Turn on **Subscribe a URL to This Envelope** on *Send for Signature* or
+*Create*, and give it the production URL of a trigger set to *Only Requests
+Pointed at This URL*. That trigger then hears about this envelope alone.
+
+Signlift unregisters the subscription itself once the envelope is settled, so a
+workflow driving hundreds of signatures leaves nothing behind.
+
+Where **Wait for Completion** suspends one execution per envelope, this hands
+the outcome to a separate workflow — which is what lets it take the
+intermediate events too, and what lets a batch go out without a **Loop Over
+Items**.
 
 ## Signature tags
 

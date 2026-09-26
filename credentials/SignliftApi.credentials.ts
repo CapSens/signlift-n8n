@@ -45,7 +45,7 @@ export class SignliftApi implements ICredentialType {
 			typeOptions: { password: true },
 			default: '',
 			description:
-				'Only needed by the Signlift Trigger, which uses it to verify that an incoming event really came from Signlift. Find it next to your API key in the dashboard, under External applications. Leave empty if you only use the action node.',
+				'Verifies that an incoming event really came from Signlift. Needed by the Signlift Trigger and by Wait for Completion, and by nothing else. Find it next to your API key in the dashboard, under External applications.',
 		},
 	];
 
