@@ -74,12 +74,40 @@ function sameEvents(registered: string[], wanted: string[]): boolean {
 	);
 }
 
+/**
+ * Active ones only, which is what the API lists by default: an endpoint this
+ * workflow unregistered must be registered again, not recognised.
+ *
+ * Application-wide only, too. The same URL can carry envelope-bound
+ * subscriptions — a workflow pointing single envelopes at this trigger does
+ * exactly that — and taking one of those for the trigger's own registration
+ * would read as registered when it is not, and unregister someone else's
+ * envelope on the way out.
+ */
 async function findByUrl(this: IHookFunctions, url: string): Promise<Endpoint | undefined> {
 	const response = await call.call(this, { method: 'GET', url: ENDPOINTS_PATH, qs: { url } });
 
-	// Active ones only, which is what the API lists by default: an endpoint
-	// this workflow unregistered must be registered again, not recognised.
-	return (response.data as Endpoint[] | undefined)?.[0];
+	return ((response.data as Endpoint[] | undefined) ?? []).find(
+		(endpoint) => endpoint.signature_request_id === null,
+	);
+}
+
+/**
+ * What this workflow registered, when it no longer remembers registering it.
+ *
+ * n8n keeps that memory in the workflow's static data, and drops it without a
+ * word for any workflow whose id runs past 21 characters — and loses it
+ * outright when a workflow is imported over or a database is restored. Left
+ * to the memory alone, an unregistration that finds nothing does nothing, and
+ * the subscription holds one of the three slots a key has for good.
+ */
+async function registeredByUrl(this: IHookFunctions): Promise<number | undefined> {
+	const url = this.getNodeWebhookUrl('default');
+
+	// Not https means it was never registered: the API refuses anything else.
+	if (!url?.startsWith('https://')) return undefined;
+
+	return (await findByUrl.call(this, url))?.id;
 }
 
 export async function checkExists(this: IHookFunctions): Promise<boolean> {
@@ -125,11 +153,12 @@ export async function create(this: IHookFunctions): Promise<boolean> {
 
 export async function remove(this: IHookFunctions): Promise<boolean> {
 	const staticData = this.getWorkflowStaticData('node');
-	const endpointId = staticData.endpointId;
 
 	// Keyed on what was registered rather than on what the form says now: a
 	// node switched to "routed" after being activated still owns the
 	// subscription it took out, and this is where it gives it back.
+	const endpointId = staticData.endpointId ?? (await registeredByUrl.call(this));
+
 	if (endpointId === undefined) return true;
 
 	try {

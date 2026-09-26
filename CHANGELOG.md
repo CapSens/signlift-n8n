@@ -4,6 +4,28 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the package
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-09-27
+
+### Fixed
+
+- Deactivating a workflow could leave its subscription live. The trigger
+  records the endpoint it registered in n8n's workflow static data, and n8n
+  drops that data without a word for any workflow whose id runs past 21
+  characters — `isWorkflowIdValid` is nothing but a length check, and
+  `saveStaticData` does nothing when it fails. It is lost outright when a
+  workflow is imported over a running one, or a database is restored.
+
+  The unregistration no longer depends on that memory alone: with nothing
+  recorded, it finds what this workflow registered by its URL. Left as it
+  was, a forgotten subscription held one of the three slots an API key has,
+  for good, with nothing on either side saying so.
+
+- The lookup by URL now considers application-wide endpoints only. The same
+  URL can carry envelope-bound subscriptions — a workflow pointing single
+  envelopes at a trigger does exactly that — and one of those read as the
+  trigger's own registration would have made it register nothing on
+  activation, and cut someone else's envelope off on the way out.
+
 ## [0.3.0] - 2026-09-26
 
 ### Added
