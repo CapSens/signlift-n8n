@@ -42,6 +42,11 @@ const ROUTES: Array<[string, string, string]> = [
 	['document', 'getAll', 'GET /api/v1/documents'],
 	['auditLog', 'getAll', 'GET =/api/v1/signature_requests/{{$parameter.signatureRequestId}}/audit_logs'],
 	['brandingProfile', 'getAll', 'GET /api/v1/branding_profiles'],
+	['webhookEndpoint', 'create', 'POST /api/v1/webhook_endpoints'],
+	['webhookEndpoint', 'getAll', 'GET /api/v1/webhook_endpoints'],
+	['webhookEndpoint', 'get', 'GET =/api/v1/webhook_endpoints/{{$parameter.webhookEndpointId}}'],
+	['webhookEndpoint', 'update', 'PATCH =/api/v1/webhook_endpoints/{{$parameter.webhookEndpointId}}'],
+	['webhookEndpoint', 'delete', 'DELETE =/api/v1/webhook_endpoints/{{$parameter.webhookEndpointId}}'],
 ];
 
 describe('operation routes', () => {
@@ -52,18 +57,25 @@ describe('operation routes', () => {
 	it('declares every advertised resource', () => {
 		const resources = description.properties.find((p) => p.name === 'resource') as INodeProperties;
 
+		// Alphabetical by display name, which the linter enforces from five
+		// options on. The default is what decides which one opens.
 		expect((resources.options as Array<{ value: string }>).map((o) => o.value)).toEqual([
-			'signatureRequest',
-			'document',
 			'auditLog',
 			'brandingProfile',
+			'document',
+			'signatureRequest',
+			'webhookEndpoint',
 		]);
 	});
 
 	it('covers every declared operation in the table above', () => {
-		const declared = ['signatureRequest', 'document', 'auditLog', 'brandingProfile'].flatMap(
-			(resource) => operationsOf(resource).map((o) => `${resource}.${o.value}`),
-		);
+		const declared = [
+			'signatureRequest',
+			'document',
+			'auditLog',
+			'brandingProfile',
+			'webhookEndpoint',
+		].flatMap((resource) => operationsOf(resource).map((o) => `${resource}.${o.value}`));
 
 		expect(declared.sort()).toEqual(ROUTES.map(([r, o]) => `${r}.${o}`).sort());
 	});
@@ -84,7 +96,7 @@ describe('custom operations', () => {
 		expect(custom.signatureRequest).not.toHaveProperty(operation);
 	});
 
-	it.each(['document', 'auditLog', 'brandingProfile'])('leaves the %s resource untouched', (resource) => {
+	it.each(['document', 'auditLog', 'brandingProfile', 'webhookEndpoint'])('leaves the %s resource untouched', (resource) => {
 		expect(custom).not.toHaveProperty(resource);
 	});
 
