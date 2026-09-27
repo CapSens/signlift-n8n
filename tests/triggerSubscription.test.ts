@@ -27,7 +27,7 @@ function hookContext({
 		),
 		getNodeWebhookUrl: vi.fn(() => webhookUrl),
 		getWorkflowStaticData: vi.fn(() => staticData),
-		getCredentials: vi.fn(async () => ({ deployment: 'staging' })),
+		getCredentials: vi.fn(async () => ({})),
 		helpers: {
 			httpRequestWithAuthentication: {
 				call: vi.fn(async (_context: unknown, _name: string, options: Record<string, unknown>) => {

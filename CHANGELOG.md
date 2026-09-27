@@ -4,6 +4,19 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the package
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-09-27
+
+### Removed
+
+- The **Deployment** field of the credential. The node calls
+  `app.signlift.eu`, always. The staging deployment is for Signlift's own
+  team, and offering it to everyone only let a user pick it by mistake — with
+  a key that then answered `invalid_api_key` for no reason they could see.
+
+  Nothing changes for a credential left on Production, which was the default.
+  One still set to Staging now calls production, where its key is unknown:
+  create a production key and paste it in.
+
 ## [0.3.1] - 2026-09-27
 
 ### Fixed

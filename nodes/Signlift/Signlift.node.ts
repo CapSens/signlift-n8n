@@ -17,6 +17,7 @@ import { getBrandingProfiles } from './listSearch/getBrandingProfiles';
 import { waitDescription } from './wait/descriptions';
 import { signatureRequestWithWait } from './wait/waitForCompletion';
 import { resumeOnCallback } from './wait/resume';
+import { BASE_URL } from './shared/baseUrl';
 
 export class Signlift implements INodeType {
 	description: INodeTypeDescription = {
@@ -59,8 +60,7 @@ export class Signlift implements INodeType {
 			},
 		],
 		requestDefaults: {
-			baseURL:
-				'={{$credentials.deployment === "staging" ? "https://app.staging-signlift.eu" : "https://app.signlift.eu"}}',
+			baseURL: BASE_URL,
 			headers: {
 				Accept: 'application/json',
 				'Content-Type': 'application/json',
