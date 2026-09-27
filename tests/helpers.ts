@@ -26,7 +26,7 @@ export function executeContext({
 	parameters = {} as Record<string, unknown>,
 	items = [{ json: {} }] as unknown[],
 	responses = [] as unknown[],
-	credentials = { deployment: 'staging', webhookSecret: 'whsec_test' } as Record<string, unknown>,
+	credentials = { webhookSecret: 'whsec_test' } as Record<string, unknown>,
 	resumeUrl = 'https://n8n.example.test/webhook/abc',
 	continueOnFail = false,
 } = {}) {

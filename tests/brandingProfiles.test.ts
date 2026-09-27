@@ -1,11 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { getBrandingProfiles, resolveBaseUrl } from '../nodes/Signlift/listSearch/getBrandingProfiles';
+import { getBrandingProfiles } from '../nodes/Signlift/listSearch/getBrandingProfiles';
 
-function searchContext(data: unknown, deployment = 'production') {
+function searchContext(data: unknown) {
 	const httpRequestWithAuthentication = { call: vi.fn(async () => data) };
 
 	return {
-		getCredentials: vi.fn(async () => ({ deployment })),
 		helpers: { httpRequestWithAuthentication },
 		httpRequestWithAuthentication,
 	};
@@ -64,14 +63,17 @@ describe('getBrandingProfiles', () => {
 	});
 });
 
-describe('resolveBaseUrl', () => {
-	it.each([
-		['staging', 'https://app.staging-signlift.eu'],
-		['production', 'https://app.signlift.eu'],
-		[undefined, 'https://app.signlift.eu'],
-	])('sends a %s credential to %s', async (deployment, expected) => {
-		const context = searchContext({}, deployment as string);
+describe('base url', () => {
+	it('asks production', async () => {
+		const context = searchContext({});
 
-		await expect(resolveBaseUrl.call(context as never)).resolves.toBe(expected);
+		await getBrandingProfiles.call(context as never);
+
+		const [, , options] = context.httpRequestWithAuthentication.call.mock.calls[0] as unknown as [
+			unknown,
+			string,
+			{ baseURL: string },
+		];
+		expect(options.baseURL).toBe('https://app.signlift.eu');
 	});
 });

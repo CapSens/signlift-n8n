@@ -1,4 +1,5 @@
 import type { ILoadOptionsFunctions, INodeListSearchResult } from 'n8n-workflow';
+import { BASE_URL } from '../shared/baseUrl';
 
 /**
  * Feeds the branding profile picker. The collection is short — the plans cap
@@ -12,7 +13,7 @@ export async function getBrandingProfiles(
 	const response = (await this.helpers.httpRequestWithAuthentication.call(this, 'signliftApi', {
 		method: 'GET',
 		url: '/api/v1/branding_profiles',
-		baseURL: await resolveBaseUrl.call(this),
+		baseURL: BASE_URL,
 		qs: { limit: 100 },
 		json: true,
 	})) as { data?: Array<{ id: number; name: string }> };
@@ -24,10 +25,3 @@ export async function getBrandingProfiles(
 	return { results };
 }
 
-export async function resolveBaseUrl(this: ILoadOptionsFunctions): Promise<string> {
-	const credentials = await this.getCredentials('signliftApi');
-
-	return credentials.deployment === 'staging'
-		? 'https://app.staging-signlift.eu'
-		: 'https://app.signlift.eu';
-}

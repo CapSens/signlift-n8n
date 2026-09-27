@@ -210,7 +210,7 @@ describe('waiting guards', () => {
 	it('refuses to wait without a webhook secret to authenticate the callback', async () => {
 		const context = executeContext({
 			parameters: { ...BASE, operation: 'create', documentId: 42, waitForCompletion: true },
-			credentials: { deployment: 'staging' },
+			credentials: {},
 		});
 
 		await expect(run(context)).rejects.toThrow(/No webhook secret configured/);
@@ -227,20 +227,19 @@ describe('waiting guards', () => {
 	});
 });
 
-describe('deployment', () => {
-	it.each([
-		['staging', 'https://app.staging-signlift.eu'],
-		['production', 'https://app.signlift.eu'],
-	])('sends a %s credential to %s', async (deployment, expected) => {
+// A credential saved before 0.4.0 may still hold deployment: 'staging'. It is
+// ignored, so an upgrade moves nobody onto a deployment they did not mean.
+describe('base url', () => {
+	it('calls production, whatever an older credential still holds', async () => {
 		const context = executeContext({
 			parameters: { ...BASE, operation: 'create', documentId: 42 },
 			responses: [ENVELOPE],
-			credentials: { deployment, webhookSecret: 'whsec_test' },
+			credentials: { deployment: 'staging', webhookSecret: 'whsec_test' },
 		});
 
 		await run(context);
 
-		expect(callsOf(context)[0]).toMatchObject({ baseURL: expected });
+		expect(callsOf(context)[0]).toMatchObject({ baseURL: 'https://app.signlift.eu' });
 	});
 });
 

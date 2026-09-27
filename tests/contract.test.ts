@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { INodeProperties } from 'n8n-workflow';
 import { Signlift } from '../nodes/Signlift/Signlift.node';
+import { SignliftApi } from '../credentials/SignliftApi.credentials';
 
 const description = new Signlift().description;
 
@@ -136,11 +137,8 @@ describe('resume webhook', () => {
 });
 
 describe('node description', () => {
-	// The deployment switch lives on the credential, and the base url is the
-	// only thing that tells staging from production.
-	it('resolves the base url from the credential deployment', () => {
-		expect(description.requestDefaults?.baseURL).toContain('app.staging-signlift.eu');
-		expect(description.requestDefaults?.baseURL).toContain('app.signlift.eu');
+	it('calls production', () => {
+		expect(description.requestDefaults?.baseURL).toBe('https://app.signlift.eu');
 	});
 
 	it('requires the Signlift credential', () => {
@@ -150,5 +148,22 @@ describe('node description', () => {
 	// n8n verification requires the node to be reachable as a tool.
 	it('stays usable as a tool', () => {
 		expect(description.usableAsTool).toBe(true);
+	});
+});
+
+// Staging is for Signlift's own team: a public choice would only let a user
+// pick it by mistake.
+describe('credential', () => {
+	const credential = new SignliftApi();
+
+	it('offers no choice of deployment', () => {
+		expect(credential.properties.map((property) => property.name)).toEqual([
+			'apiKey',
+			'webhookSecret',
+		]);
+	});
+
+	it('tests the key against production', () => {
+		expect(credential.test.request.baseURL).toBe('https://app.signlift.eu');
 	});
 });

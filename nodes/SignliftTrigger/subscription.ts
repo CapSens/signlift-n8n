@@ -6,7 +6,7 @@ import {
 	type IHttpRequestMethods,
 	type JsonObject,
 } from 'n8n-workflow';
-import { baseUrlFor } from '../Signlift/shared/baseUrl';
+import { BASE_URL } from '../Signlift/shared/baseUrl';
 
 export const ENDPOINTS_PATH = '/api/v1/webhook_endpoints';
 
@@ -25,10 +25,8 @@ async function call(
 	this: IHookFunctions,
 	options: { method: IHttpRequestMethods; url: string; body?: IDataObject; qs?: IDataObject },
 ): Promise<IDataObject> {
-	const credentials = await this.getCredentials('signliftApi');
-
 	return (await this.helpers.httpRequestWithAuthentication.call(this, 'signliftApi', {
-		baseURL: baseUrlFor(credentials),
+		baseURL: BASE_URL,
 		json: true,
 		...options,
 	})) as IDataObject;

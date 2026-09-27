@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { subscribeToEnvelope } from '../nodes/Signlift/resources/signatureRequest/subscribe';
 
-const BASE_URL = 'https://app.staging-signlift.eu';
+const BASE_URL = 'https://app.signlift.eu';
 
 function executeContext({
 	subscription = {} as Record<string, unknown>,

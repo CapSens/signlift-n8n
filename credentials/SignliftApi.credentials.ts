@@ -5,6 +5,7 @@ import type {
 	ICredentialType,
 	INodeProperties,
 } from 'n8n-workflow';
+import { BASE_URL } from '../nodes/Signlift/shared/baseUrl';
 
 export class SignliftApi implements ICredentialType {
 	name = 'signliftApi';
@@ -25,18 +26,6 @@ export class SignliftApi implements ICredentialType {
 			required: true,
 			description:
 				'API key of an external application. Production keys start with sk_live_, sandbox keys with sk_sandbox_. The key alone decides whether you work against sandbox or production data.',
-		},
-		{
-			displayName: 'Deployment',
-			name: 'deployment',
-			type: 'options',
-			options: [
-				{ name: 'Production', value: 'production' },
-				{ name: 'Staging', value: 'staging' },
-			],
-			default: 'production',
-			description:
-				'Which Signlift deployment to call. Leave on Production unless Signlift gave you a staging account: this is not the sandbox switch, which is carried by the key itself.',
 		},
 		{
 			displayName: 'Webhook Secret',
@@ -63,8 +52,7 @@ export class SignliftApi implements ICredentialType {
 	// going red over a billing state rather than over a wrong key.
 	test: ICredentialTestRequest = {
 		request: {
-			baseURL:
-				'={{$credentials.deployment === "staging" ? "https://app.staging-signlift.eu" : "https://app.signlift.eu"}}',
+			baseURL: BASE_URL,
 			url: '/api/v1/health',
 			method: 'GET',
 		},

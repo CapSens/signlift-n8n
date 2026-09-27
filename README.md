@@ -26,7 +26,6 @@ shown in full only once.
 | Field          | Notes                                                                     |
 | -------------- | ------------------------------------------------------------------------- |
 | API Key        | Production keys start with `sk_live_`, sandbox keys with `sk_sandbox_`    |
-| Deployment     | Leave on **Production** unless Signlift gave you a staging account        |
 | Webhook Secret | Authenticates incoming events. Needed by the **Signlift Trigger** and by **Wait for Completion**, and by nothing else. |
 
 ### Sending the invitations
@@ -40,7 +39,7 @@ make, not a flag.
 Left off, no email goes out and you hand out the `signing_url` of each signer
 from the node's output yourself.
 
-**Sandbox and production are decided by the key, not by the Deployment field.**
+**Sandbox and production are decided by the key.**
 A sandbox key only ever sees sandbox data: it cannot read a production envelope,
 download a production PDF, or build an envelope from a production document. That
 makes a sandbox key safe to hand to a developer or an outside integrator.

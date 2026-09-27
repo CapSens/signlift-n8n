@@ -11,7 +11,7 @@ import {
 import { buildPayload } from '../resources/signatureRequest/create';
 import { documentUploadFormData } from '../resources/document/upload';
 import { singleItemContext } from './resumeContext';
-import { baseUrlFor } from '../shared/baseUrl';
+import { BASE_URL } from '../shared/baseUrl';
 import { subscribeToEnvelope } from '../resources/signatureRequest/subscribe';
 
 /** A day of slack on top of the envelope's own expiry. */
@@ -99,12 +99,9 @@ async function createEnvelope(
 	itemIndex: number,
 	callbackUrl?: string,
 ): Promise<IDataObject> {
-	const credentials = await this.getCredentials('signliftApi');
-	const baseURL = baseUrlFor(credentials);
-
 	const documentId =
 		operation === 'sendForSignature'
-			? await uploadDocument.call(this, itemIndex, baseURL)
+			? await uploadDocument.call(this, itemIndex, BASE_URL)
 			: (this.getNodeParameter('documentId', itemIndex) as number);
 
 	const payload = buildPayload.call(singleItemContext(this, itemIndex), documentId);
@@ -113,12 +110,12 @@ async function createEnvelope(
 	const envelope = (await this.helpers.httpRequestWithAuthentication.call(this, 'signliftApi', {
 		method: 'POST',
 		url: '/api/v1/signature_requests',
-		baseURL,
+		baseURL: BASE_URL,
 		body: { signature_request: payload },
 		json: true,
 	})) as IDataObject;
 
-	await subscribeToEnvelope.call(this, itemIndex, envelope, baseURL);
+	await subscribeToEnvelope.call(this, itemIndex, envelope, BASE_URL);
 
 	return envelope;
 }
