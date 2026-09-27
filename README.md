@@ -175,7 +175,7 @@ it. One workflow subscribed to several events, with a **Switch** after it,
 costs a single slot and is the way to spend them well. Past the limit the node
 says so and names the URLs holding the slots.
 
-Envelope-bound subscriptions are counted per envelope instead — five each,
+Envelope-bound subscriptions are counted per envelope instead — two each,
 with no ceiling on how many envelopes.
 
 ### One workflow per envelope
