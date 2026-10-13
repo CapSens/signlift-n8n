@@ -4,6 +4,19 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the package
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Return All** on every Get Many operation lost records past the first
+  hundred. It used n8n's offset paginator, which counts items into its
+  parameter from 0: on `page` that asked for page 0, then 100, then 200. The
+  API numbers pages from 1 and caps one out of range at the last, so 250
+  envelopes came back as 150, and a collection whose last page was full —
+  200 envelopes, say — was requested again and again without end. It now
+  walks the pages by number and stops on the `pagination.pages` the API
+  reports, carrying the limit and the filters to every page.
+
 ## [0.4.0] - 2026-09-27
 
 ### Removed
