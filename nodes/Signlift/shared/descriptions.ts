@@ -1,4 +1,9 @@
-import type { IDisplayOptions, INodeProperties } from 'n8n-workflow';
+import type {
+	IDataObject,
+	IDisplayOptions,
+	IN8nRequestOperationPaginationGeneric,
+	INodeProperties,
+} from 'n8n-workflow';
 
 /**
  * Filters shared by the collections the API exposes. The API is strict on
@@ -41,6 +46,32 @@ export const collectionFilters: INodeProperties[] = [
 ];
 
 /**
+ * Return All walks the pages by number, reading where to go next from the
+ * `pagination` the API answers with rather than counting items.
+ *
+ * Not n8n's `offset` paginator: that one starts its parameter at 0 and adds
+ * the page size each round, so it asks for page 0, then 100, then 200. The API
+ * numbers pages from 1 and caps an out-of-range page at the last one, so those
+ * requests skip every page between the first and the last — and when the last
+ * page is full, they get it back forever.
+ *
+ * The generic paginator replaces `qs` wholesale on each request, which is why
+ * the next page is merged into `$request.qs`: setting `page` alone would drop
+ * the limit and every filter from the second page on.
+ */
+export const pageNumberPagination: IN8nRequestOperationPaginationGeneric = {
+	type: 'generic',
+	properties: {
+		continue: '={{ $response.body.pagination.page < $response.body.pagination.pages }}',
+		request: {
+			// An expression for the whole object, which n8n resolves like any
+			// other parameter value; the type only knows the literal form.
+			qs: '={{ Object.assign({}, $request.qs, { page: ($response.body?.pagination?.page ?? 0) + 1 }) }}' as unknown as IDataObject,
+		},
+	},
+};
+
+/**
  * The API caps `limit` at 100 and answers with the value it actually applied,
  * so asking for more is pointless rather than rejected. Paging is by page
  * number, and the envelope carries the totals.
@@ -56,17 +87,7 @@ export function paginationDescription(show: IDisplayOptions['show']): INodePrope
 			description: 'Whether to return all results or only up to a given limit',
 			routing: {
 				send: { paginate: '={{ $value }}', type: 'query', property: 'limit', value: '100' },
-				operations: {
-					pagination: {
-						type: 'offset',
-						properties: {
-							limitParameter: 'limit',
-							offsetParameter: 'page',
-							pageSize: 100,
-							type: 'query',
-						},
-					},
-				},
+				operations: { pagination: pageNumberPagination },
 			},
 		},
 		{
