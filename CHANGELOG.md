@@ -4,6 +4,14 @@ All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the package
 follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- The **Organization** resource, with a **Get** operation. It reads what the
+  organization behind the API key can do with it: its plan, its features and
+  its effective limits, where `null` means unlimited.
+
 ## [0.4.0] - 2026-09-27
 
 ### Removed

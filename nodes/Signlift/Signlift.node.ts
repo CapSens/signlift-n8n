@@ -12,6 +12,7 @@ import { signatureRequestDescription } from './resources/signatureRequest';
 import { documentDescription } from './resources/document';
 import { auditLogDescription } from './resources/auditLog';
 import { brandingProfileDescription } from './resources/brandingProfile';
+import { organizationDescription } from './resources/organization';
 import { webhookEndpointDescription } from './resources/webhookEndpoint';
 import { getBrandingProfiles } from './listSearch/getBrandingProfiles';
 import { waitDescription } from './wait/descriptions';
@@ -76,6 +77,7 @@ export class Signlift implements INodeType {
 					{ name: 'Audit Log', value: 'auditLog' },
 					{ name: 'Branding Profile', value: 'brandingProfile' },
 					{ name: 'Document', value: 'document' },
+					{ name: 'Organization', value: 'organization' },
 					{ name: 'Signature Request', value: 'signatureRequest' },
 					{ name: 'Webhook Endpoint', value: 'webhookEndpoint' },
 				],
@@ -86,6 +88,7 @@ export class Signlift implements INodeType {
 			...documentDescription,
 			...auditLogDescription,
 			...brandingProfileDescription,
+			...organizationDescription,
 			...webhookEndpointDescription,
 		],
 	};
