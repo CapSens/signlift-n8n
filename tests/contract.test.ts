@@ -43,6 +43,7 @@ const ROUTES: Array<[string, string, string]> = [
 	['document', 'getAll', 'GET /api/v1/documents'],
 	['auditLog', 'getAll', 'GET =/api/v1/signature_requests/{{$parameter.signatureRequestId}}/audit_logs'],
 	['brandingProfile', 'getAll', 'GET /api/v1/branding_profiles'],
+	['organization', 'get', 'GET /api/v1/organization'],
 	['webhookEndpoint', 'create', 'POST /api/v1/webhook_endpoints'],
 	['webhookEndpoint', 'getAll', 'GET /api/v1/webhook_endpoints'],
 	['webhookEndpoint', 'get', 'GET =/api/v1/webhook_endpoints/{{$parameter.webhookEndpointId}}'],
@@ -64,6 +65,7 @@ describe('operation routes', () => {
 			'auditLog',
 			'brandingProfile',
 			'document',
+			'organization',
 			'signatureRequest',
 			'webhookEndpoint',
 		]);
@@ -75,6 +77,7 @@ describe('operation routes', () => {
 			'document',
 			'auditLog',
 			'brandingProfile',
+			'organization',
 			'webhookEndpoint',
 		].flatMap((resource) => operationsOf(resource).map((o) => `${resource}.${o.value}`));
 
@@ -97,7 +100,7 @@ describe('custom operations', () => {
 		expect(custom.signatureRequest).not.toHaveProperty(operation);
 	});
 
-	it.each(['document', 'auditLog', 'brandingProfile', 'webhookEndpoint'])('leaves the %s resource untouched', (resource) => {
+	it.each(['document', 'auditLog', 'brandingProfile', 'organization', 'webhookEndpoint'])('leaves the %s resource untouched', (resource) => {
 		expect(custom).not.toHaveProperty(resource);
 	});
 

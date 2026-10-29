@@ -78,6 +78,14 @@ Sandbox signatures carry a visible watermark and are not legally binding.
 
 - **Get Many** — list the branding profiles you can apply to a signing flow.
 
+### Organization
+
+- **Get** — read what the organization behind your API key can do: its plan,
+  the features it has (SMS authentication, initials, branding profiles) and
+  its effective limits, where `null` means unlimited. Reach for it before a
+  call a plan may refuse, rather than finding out from the error. The
+  environment is the one of the key, and a sandbox key never sends an SMS.
+
 ### Webhook Endpoint
 
 - **Create** — register a URL to receive events, for every envelope or for one.
